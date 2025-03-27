@@ -5,12 +5,11 @@ import Dashboard from './pages/Dashboard';
 import Home from './pages/Home';
 
 function App() {
-
   return (
     <BrowserRouter>
       <Routes>
         <Route index element={<Home />} />
-        <Route path='/dashboard' element={<Dashboard />} />
+        <Route path="/dashboard" element={<Dashboard />} />
       </Routes>
     </BrowserRouter>
   );

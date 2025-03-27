@@ -1,8 +1,4 @@
 const ProblemSetting = () => {
-    return (
-        <div>
-            ProblemSetting
-        </div>
-    );
-}
+  return <div>ProblemSetting</div>;
+};
 export default ProblemSetting;
