@@ -1,19 +1,18 @@
-import './App.css';
-
-import MDEditor from '@uiw/react-md-editor';
 import { useState } from 'react';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
 
-import viteLogo from '/vite.svg';
-
-import reactLogo from './assets/react.svg';
+import Dashboard from './pages/Dashboard';
+import Home from './pages/Home';
 
 function App() {
-  const [value, setValue] = useState('# Hello, world!');
 
   return (
-    <div className="bg-gray-100 p-4">
-      <MDEditor value={value} onChange={setValue} />
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route index element={<Home />} />
+        <Route path='/dashboard' element={<Dashboard />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
