@@ -7,11 +7,19 @@
   },
   "type": "module",
   "scripts": {
+    "prepare": "husky",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "format": "prettier --write \"{.,src/**,test/**}/*.{ts,tsx,css,scss,html,md}\"",
     "lint": "eslint .",
     "preview": "vite preview"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{css,scss,html,md}": "prettier --write"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
@@ -38,6 +46,8 @@
     "eslint-plugin-simple-import-sort": "^12.1.1",
     "eslint-plugin-tsdoc": "^0.4.0",
     "globals": "^15.15.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.0",
     "prettier": "^3.5.3",
     "typescript": "~5.7.2",
     "typescript-eslint": "^8.24.1",
