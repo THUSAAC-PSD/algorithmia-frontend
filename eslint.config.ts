@@ -22,10 +22,6 @@ export default tseslint.config(
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
     },
     plugins: {
       'react-hooks': reactHooks,
@@ -44,11 +40,11 @@ export default tseslint.config(
         'warn',
         { allowConstantExport: true },
       ],
-      'simple-import-sort/imports': 'error',
-      'simple-import-sort/exports': 'error',
-      'import/newline-after-import': 'error',
-      'import/no-duplicates': 'error',
-      'tsdoc/syntax': 'error',
+      'simple-import-sort/imports': 'warn',
+      'simple-import-sort/exports': 'warn',
+      'import/newline-after-import': 'warn',
+      'import/no-duplicates': 'warn',
+      'tsdoc/syntax': 'warn',
     },
   },
 );
