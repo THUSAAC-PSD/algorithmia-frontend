@@ -27,6 +27,7 @@
     "@uiw/react-md-editor": "^4.0.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-hot-toast": "^2.5.2",
     "react-router-dom": "^7.4.0",
     "tailwindcss": "^4.0.16"
   },
