@@ -4,14 +4,10 @@ import {
   ChevronRightIcon,
   DocumentTextIcon,
 } from '@heroicons/react/24/outline';
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { NavLink } from 'react-router-dom';
 
-interface SidebarProps {
-  activeItem: string;
-  setActiveItem: (item: string) => void;
-}
-
-const Sidebar: React.FC<SidebarProps> = ({ activeItem, setActiveItem }) => {
+const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
 
   const sidebarItems = [
@@ -43,6 +39,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeItem, setActiveItem }) => {
           <button
             onClick={() => setCollapsed(!collapsed)}
             className={`${collapsed ? 'mt-6 ml-1' : 'ml-4'} p-2 rounded-full hover:bg-slate-700/60 text-slate-400 hover:text-white transition-colors`}
+            type='button'
           >
             {collapsed ? (
               <ChevronRightIcon className="w-4 h-4" />
@@ -55,35 +52,48 @@ const Sidebar: React.FC<SidebarProps> = ({ activeItem, setActiveItem }) => {
 
       <nav className="mt-8 flex-1 px-3">
         <ul className="space-y-2">
-          {sidebarItems.map((item) => (
-            <li key={item.id}>
-              <button
-                className={`group flex items-center w-full px-4 py-3 rounded-xl transition-all duration-200 ${
-                  activeItem === item.id
-                    ? 'bg-indigo-500/10 text-indigo-400'
-                    : 'text-slate-400 hover:bg-slate-700/40 hover:text-white'
-                } ${collapsed ? 'justify-center' : ''}`}
-                onClick={() => setActiveItem(item.id)}
-                title={collapsed ? item.label : ''}
-              >
-                <span
-                  className={`${activeItem === item.id ? 'text-indigo-400' : 'text-slate-400 group-hover:text-white'} transition-colors`}
+          {sidebarItems.map((item) => {
+            const path = '/' + item.id.replace(/-/g, '');
+            return (
+              <li key={item.id}>
+                <NavLink
+                  to={path}
+                  className={({ isActive }) =>
+                    `group flex items-center w-full px-4 py-3 rounded-xl transition-all duration-200 ${
+                      isActive
+                        ? 'bg-indigo-500/10 text-indigo-400'
+                        : 'text-slate-400 hover:bg-slate-700/40 hover:text-white'
+                    } ${collapsed ? 'justify-center' : ''}`
+                  }
+                  title={collapsed ? item.label : ''}
                 >
-                  {item.icon}
-                </span>
+                  {({ isActive }) => (
+                    <>
+                      <span
+                        className={`${
+                          isActive
+                            ? 'text-indigo-400'
+                            : 'text-slate-400 group-hover:text-white'
+                        } transition-colors`}
+                      >
+                        {item.icon}
+                      </span>
 
-                {!collapsed && (
-                  <span className="ml-3 font-medium tracking-wide">
-                    {item.label}
-                  </span>
-                )}
+                      {!collapsed && (
+                        <span className="ml-3 font-medium tracking-wide">
+                          {item.label}
+                        </span>
+                      )}
 
-                {activeItem === item.id && !collapsed && (
-                  <div className="ml-auto h-2 w-2 rounded-full bg-indigo-400"></div>
-                )}
-              </button>
-            </li>
-          ))}
+                      {isActive && !collapsed && (
+                        <div className="ml-auto h-2 w-2 rounded-full bg-indigo-400"></div>
+                      )}
+                    </>
+                  )}
+                </NavLink>
+              </li>
+            );
+          })}
         </ul>
       </nav>
 

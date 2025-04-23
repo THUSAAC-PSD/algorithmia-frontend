@@ -1,4 +1,4 @@
-import { PaperAirplaneIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { PaperAirplaneIcon } from '@heroicons/react/24/outline';
 import React, { useState } from 'react';
 
 const Chat = () => {
@@ -41,7 +41,7 @@ const Chat = () => {
   };
 
   return (
-    <div className="flex h-full bg-slate-900">
+    <div className="flex h-full bg-slate-900 w-full">
       <div className="w-72 bg-slate-800 border-r border-slate-700/50 flex flex-col">
         <div className="p-4 border-b border-slate-700/50">
           <h2 className="text-xl font-medium text-white">Chats</h2>
@@ -58,6 +58,7 @@ const Chat = () => {
                       : 'text-slate-400 hover:bg-slate-700/40 hover:text-white'
                   }`}
                   onClick={() => setActiveChat(group.id)}
+                  type='button'
                 >
                   <span className="font-medium">{group.name}</span>
                   {group.unread > 0 && (
