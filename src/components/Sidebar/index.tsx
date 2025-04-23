@@ -21,6 +21,11 @@ const Sidebar = () => {
       label: 'Chat',
       icon: <ChatBubbleLeftRightIcon className="w-5 h-5" />,
     },
+    {
+      id: 'submissions',
+      label: 'Submissions',
+      icon: <ChatBubbleLeftRightIcon className="w-5 h-5" />,
+    },
   ];
 
   return (
@@ -39,7 +44,7 @@ const Sidebar = () => {
           <button
             onClick={() => setCollapsed(!collapsed)}
             className={`${collapsed ? 'mt-6 ml-1' : 'ml-4'} p-2 rounded-full hover:bg-slate-700/60 text-slate-400 hover:text-white transition-colors`}
-            type='button'
+            type="button"
           >
             {collapsed ? (
               <ChevronRightIcon className="w-4 h-4" />

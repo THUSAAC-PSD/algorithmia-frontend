@@ -1,9 +1,20 @@
 import { PaperAirplaneIcon } from '@heroicons/react/24/outline';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 
 const Chat = () => {
-  const [activeChat, setActiveChat] = useState('general');
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const [activeChat, setActiveChat] = useState<string>(id || 'aaa');
   const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    if (id) {
+      setActiveChat(id);
+    } else {
+      navigate('/chat/aaa');
+    }
+  }, [id, navigate]);
 
   // Mock data for chat groups and messages
   const chatGroups = [
@@ -32,6 +43,13 @@ const Chat = () => {
     ],
   };
 
+  useEffect(() => {
+    const chatExists = chatGroups.some((group) => group.id === activeChat);
+    if (!chatExists && id) {
+      navigate('/chat/aaa');
+    }
+  }, [activeChat, chatGroups, id, navigate]);
+
   const sendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (message.trim()) {
@@ -58,7 +76,7 @@ const Chat = () => {
                       : 'text-slate-400 hover:bg-slate-700/40 hover:text-white'
                   }`}
                   onClick={() => setActiveChat(group.id)}
-                  type='button'
+                  type="button"
                 >
                   <span className="font-medium">{group.name}</span>
                   {group.unread > 0 && (
