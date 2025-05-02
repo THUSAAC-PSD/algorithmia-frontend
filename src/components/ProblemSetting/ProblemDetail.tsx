@@ -1,7 +1,7 @@
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
-import { MilkdownEditorWrapper } from '../Editor';
+import { EditorRef, MilkdownEditorWrapper } from '../Editor';
 import { Problem } from './types';
 // import toast, { Toaster } from 'react-hot-toast';
 
@@ -13,6 +13,7 @@ interface ProblemFormProps {
 
 const ProblemDetail = ({ problem, onSave, onCancel }: ProblemFormProps) => {
   const [currentProblem, setCurrentProblem] = useState<Problem | null>(problem);
+  const editorRef = useRef<EditorRef>(null);
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (currentProblem) {
@@ -41,7 +42,7 @@ const ProblemDetail = ({ problem, onSave, onCancel }: ProblemFormProps) => {
   // };
 
   const handleSubmit = () => {
-    // TODO: check if problem is valid
+    console.log(editorRef.current?.getContent());
     onSave(currentProblem as Problem);
   };
 
@@ -105,7 +106,7 @@ const ProblemDetail = ({ problem, onSave, onCancel }: ProblemFormProps) => {
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             placeholder="Enter problem description"
           /> */}
-          <MilkdownEditorWrapper />
+          <MilkdownEditorWrapper ref={editorRef} />
         </div>
         {/* TODO: 1. more milkdown editors 2. allow uploading file */}
         <div className="flex justify-end space-x-3">
