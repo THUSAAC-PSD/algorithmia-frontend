@@ -5,7 +5,7 @@ import ProblemSetting from '../../components/ProblemSetting';
 import Sidebar from '../../components/Sidebar';
 
 const Dashboard = () => {
-  const [activeItem, setActiveItem] = useState('chat');
+  const [activeItem, setActiveItem] = useState('problem-setting');
 
   const renderWorkspace = () => {
     switch (activeItem) {
