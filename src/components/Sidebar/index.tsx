@@ -4,6 +4,7 @@ import {
   ChevronRightIcon,
   DocumentCheckIcon,
   DocumentTextIcon,
+  ServerStackIcon,
 } from '@heroicons/react/24/outline';
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
@@ -32,6 +33,12 @@ const Sidebar = ({ userRole }: { userRole: string }) => {
       label: 'Problem Verification',
       icon: <DocumentCheckIcon className="w-5 h-5" />,
       show: userRole === 'verifier' || userRole === 'admin',
+    },
+    {
+      id: 'problem-bank',
+      label: 'Problem Bank',
+      icon: <ServerStackIcon className="w-5 h-5" />,
+      show: userRole === 'admin',
     },
   ];
 

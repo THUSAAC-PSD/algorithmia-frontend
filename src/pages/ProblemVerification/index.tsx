@@ -1,9 +1,7 @@
 import {
   ArrowsUpDownIcon,
   ChatBubbleLeftRightIcon,
-  CheckCircleIcon,
   ClockIcon,
-  XCircleIcon,
 } from '@heroicons/react/24/outline';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -129,6 +127,10 @@ const ProblemVerification = () => {
     navigate(`/chat/${problemId}`);
   };
 
+  const handleProblemClick = (problemId: string) => {
+    navigate(`/problemverification/${problemId}`);
+  };
+
   return (
     <div className="flex flex-col h-full bg-slate-900 w-full">
       <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/50">
@@ -180,15 +182,9 @@ const ProblemVerification = () => {
               <div
                 key={problem.id}
                 className="bg-slate-800 rounded-lg overflow-hidden border border-slate-700"
+                onClick={() => handleProblemClick(problem.id)}
               >
-                <div
-                  className="p-4"
-                  onClick={() =>
-                    setActiveTabId(
-                      activeTabId === problem.id ? null : problem.id,
-                    )
-                  }
-                >
+                <div className="p-4">
                   <div className="flex items-center justify-between cursor-pointer">
                     <div className="flex-1">
                       <div className="flex items-center">
@@ -208,28 +204,6 @@ const ProblemVerification = () => {
                       </div>
                     </div>
                     <div className="flex space-x-2">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleStatusChange(problem.id, 'approved');
-                        }}
-                        className="p-2 rounded-full hover:bg-green-500/10 text-green-500"
-                        title="Approve"
-                        type="button"
-                      >
-                        <CheckCircleIcon className="w-6 h-6" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleStatusChange(problem.id, 'rejected');
-                        }}
-                        className="p-2 rounded-full hover:bg-red-500/10 text-red-500"
-                        title="Reject"
-                        type="button"
-                      >
-                        <XCircleIcon className="w-6 h-6" />
-                      </button>
                       <button
                         onClick={(e) => handleChatRedirect(problem.id, e)}
                         className="p-2 rounded-full hover:bg-indigo-500/10 text-indigo-400"
