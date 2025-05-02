@@ -5,14 +5,15 @@ import Sidebar from './components/Sidebar';
 import SignIn from './pages/Auth/SignIn';
 import SignUp from './pages/Auth/SignUp';
 import Chat from './pages/Chat';
-import Dashboard from './pages/Dashboard';
 import Home from './pages/Home';
 import ProblemSetting from './pages/ProblemSetting';
+import ProblemVerification from './pages/ProblemVerification';
 import Submissions from './pages/Submissions';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [userRole, setUserRole] = useState('verifier'); // TODO: Replace with actual user role from API/localStorage
   const isAuthPage = ['/signin', '/signup'].includes(location.pathname);
 
   // Check auth status on initial load
@@ -21,6 +22,8 @@ function App() {
       // TODO: Replace with actual API call to check auth status
       const loggedIn = localStorage.getItem('isLoggedIn') === 'true';
       setIsLoggedIn(loggedIn);
+
+      setUserRole(loggedIn ? 'verifier' : ''); // TODO: Replace with actual user role from API/localStorage
 
       setIsLoading(false);
     };
@@ -36,10 +39,13 @@ function App() {
     );
   }
 
+  // Helper function to check if user has verifier role
+  const isVerifier = () => userRole === 'verifier' || userRole === 'admin';
+
   return (
     <BrowserRouter>
       <div className="flex h-screen w-screen">
-        {isLoggedIn && !isAuthPage && <Sidebar />}
+        {isLoggedIn && !isAuthPage && <Sidebar userRole={userRole} />}
         <Routes>
           {/* Public routes */}
           <Route path="/signin" element={<SignIn />} />
@@ -49,10 +55,6 @@ function App() {
           <Route
             path="/"
             element={isLoggedIn ? <Home /> : <Navigate to="/signin" />}
-          />
-          <Route
-            path="/dashboard"
-            element={isLoggedIn ? <Dashboard /> : <Navigate to="/signin" />}
           />
           <Route
             path="/problemsetting"
@@ -67,6 +69,22 @@ function App() {
           <Route
             path="/submissions"
             element={isLoggedIn ? <Submissions /> : <Navigate to="/signin" />}
+          />
+
+          {/* Verifier-only route */}
+          <Route
+            path="/problemverification"
+            element={
+              isLoggedIn ? (
+                isVerifier() ? (
+                  <ProblemVerification />
+                ) : (
+                  <Navigate to="/" />
+                )
+              ) : (
+                <Navigate to="/signin" />
+              )
+            }
           />
 
           {/* Fallback route */}

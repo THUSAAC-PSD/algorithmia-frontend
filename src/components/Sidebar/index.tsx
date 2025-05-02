@@ -2,12 +2,13 @@ import {
   ChatBubbleLeftRightIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  DocumentCheckIcon,
   DocumentTextIcon,
 } from '@heroicons/react/24/outline';
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 
-const Sidebar = () => {
+const Sidebar = ({ userRole }: { userRole: string }) => {
   const [collapsed, setCollapsed] = useState(false);
 
   const sidebarItems = [
@@ -25,6 +26,12 @@ const Sidebar = () => {
       id: 'submissions',
       label: 'Submissions',
       icon: <ChatBubbleLeftRightIcon className="w-5 h-5" />,
+    },
+    {
+      id: 'problem-verification',
+      label: 'Problem Verification',
+      icon: <DocumentCheckIcon className="w-5 h-5" />,
+      show: userRole === 'verifier' || userRole === 'admin',
     },
   ];
 
@@ -58,6 +65,7 @@ const Sidebar = () => {
       <nav className="mt-8 flex-1 px-3">
         <ul className="space-y-2">
           {sidebarItems.map((item) => {
+            if (item.show === false) return null;
             const path = '/' + item.id.replace(/-/g, '');
             return (
               <li key={item.id}>
