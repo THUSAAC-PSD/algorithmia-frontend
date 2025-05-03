@@ -11,6 +11,9 @@ import ProblemSetting from './pages/ProblemSetting';
 import ProblemVerification from './pages/ProblemVerification';
 import ProblemVerificationDetail from './pages/ProblemVerificationDetail';
 import Submissions from './pages/Submissions';
+import SuperAdmin from './pages/SuperAdmin';
+import CompetitionManagement from './pages/SuperAdmin/Competitions';
+import PersonnelManagement from './pages/SuperAdmin/Personnel';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -25,7 +28,7 @@ function App() {
       const loggedIn = localStorage.getItem('isLoggedIn') === 'true';
       setIsLoggedIn(loggedIn);
 
-      setUserRole(loggedIn ? 'admin' : ''); // TODO: Replace with actual user role from API/localStorage
+      setUserRole(loggedIn ? 'super_admin' : ''); // TODO: Replace with actual user role from API/localStorage
 
       setIsLoading(false);
     };
@@ -42,10 +45,16 @@ function App() {
   }
 
   // Helper function to check if user has verifier role
-  const isVerifier = () => userRole === 'verifier' || userRole === 'admin';
+  const isVerifier = () =>
+    userRole === 'verifier' ||
+    userRole === 'admin' ||
+    userRole === 'super_admin';
 
   // Helper function to check if user is admin
-  const isAdmin = () => userRole === 'admin';
+  const isAdmin = () => userRole === 'admin' || userRole === 'super_admin';
+
+  // Helper function to check if user is super admin
+  const isSuperAdmin = () => userRole === 'super_admin';
 
   return (
     <BrowserRouter>
@@ -110,6 +119,46 @@ function App() {
               )
             }
           />
+
+          {/* Super Admin Routes */}
+          <Route
+            path="/superadmin"
+            element={
+              isLoggedIn && isSuperAdmin() ? (
+                <SuperAdmin />
+              ) : (
+                <Navigate to="/" />
+              )
+            }
+          >
+            <Route
+              index
+              element={
+                <div className="p-6">
+                  <h1 className="text-2xl font-bold text-white">
+                    Super Admin Dashboard
+                  </h1>
+                </div>
+              }
+            />
+
+            <Route path="personnel" element={<PersonnelManagement />} />
+            <Route path="competitions" element={<CompetitionManagement />} />
+
+            <Route
+              path="settings"
+              element={
+                <div className="p-6">
+                  <h1 className="text-2xl font-bold text-white">
+                    System Settings
+                  </h1>
+                  <div className="mt-4 text-slate-300">
+                    Settings configuration interface will be implemented here.
+                  </div>
+                </div>
+              }
+            />
+          </Route>
         </Routes>
       </div>
     </BrowserRouter>

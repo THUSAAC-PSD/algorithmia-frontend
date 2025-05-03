@@ -5,6 +5,7 @@ import {
   DocumentCheckIcon,
   DocumentTextIcon,
   ServerStackIcon,
+  ShieldCheckIcon,
 } from '@heroicons/react/24/outline';
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
@@ -32,13 +33,22 @@ const Sidebar = ({ userRole }: { userRole: string }) => {
       id: 'problem-verification',
       label: 'Problem Verification',
       icon: <DocumentCheckIcon className="w-5 h-5" />,
-      show: userRole === 'verifier' || userRole === 'admin',
+      show:
+        userRole === 'verifier' ||
+        userRole === 'admin' ||
+        userRole === 'super_admin',
     },
     {
       id: 'problem-bank',
       label: 'Problem Bank',
       icon: <ServerStackIcon className="w-5 h-5" />,
-      show: userRole === 'admin',
+      show: userRole === 'admin' || userRole === 'super_admin',
+    },
+    {
+      id: 'super-admin',
+      label: 'Super Admin',
+      icon: <ShieldCheckIcon className="w-5 h-5" />,
+      show: userRole === 'super_admin',
     },
   ];
 
