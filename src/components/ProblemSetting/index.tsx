@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import ProblemDetail from './ProblemDetail';
 import ProblemList from './ProblemList';
-import { Problem, ProblemContent, ViewType } from './types';
+import { Problem, ViewType } from './types';
 
 const ProblemSetting = () => {
   const [currentView, setCurrentView] = useState<ViewType>('list');
@@ -11,21 +11,35 @@ const ProblemSetting = () => {
   // Sample data
   const [problems, setProblems] = useState<Problem[]>([
     {
-      id: '1',
-      timestamp: '2025-03-20',
-      content: { title: 'A+B Problem', background: 'A+B' } as ProblemContent,
+      problem_draft_id: '114514',
+      details: {
+        language: 'en-US',
+        title: 'A+B Problem',
+        background: 'A+B',
+        statement: 'B+A',
+        input_format: 'A',
+        output_format: 'B',
+        note: 'This is a note',
+      },
+      examples: [{ input: '1 2', output: '3' }],
+      problem_difficulty_id: 'easy',
+      is_submitted: true,
+      target_contest_id: 'contest_1',
+      comments: ['This is the first comment', 'This is the second comment'],
+      created_at: '2025-03-20',
+      updated_at: '2025-04-20',
     },
   ]);
 
   const handleDeleteProblem = (id: string) => {
     // TODO: Add confirmation dialog
     // TODO: Request to delete from the server
-    setProblems(problems.filter((problem) => problem.id !== id));
+    setProblems(problems.filter((problem) => problem.problem_draft_id !== id));
   };
 
   const handleProblemClick = (id: string) => {
     // Find the selected problem and set the view to detail
-    const problem = problems.find((p) => p.id === id);
+    const problem = problems.find((p) => p.problem_draft_id === id);
     if (problem) {
       setCurrentProblem(problem);
       setCurrentView('detail');
@@ -44,7 +58,7 @@ const ProblemSetting = () => {
   };
 
   return (
-    <div className="p-6 h-full bg-gray-50">
+    <div className="p-6 h-full bg-slate-900">
       {currentView === 'list' && (
         <ProblemList
           problems={problems}
@@ -59,14 +73,18 @@ const ProblemSetting = () => {
           problem={currentProblem}
           onSave={(problem) => {
             if (currentProblem) {
-              // TODO: Update existing problem
               setProblems(
-                problems.map((p) => (p.id === problem.id ? problem : p)),
+                problems.map((p) =>
+                  p.problem_draft_id === problem.problem_draft_id ? problem : p,
+                ),
               );
             } else {
-              // TODO: Create new problem
+              setProblems([...problems, problem]);
             }
-            handleBackToList();
+            // TODO: upload to backend
+            new Promise((resolve) => setTimeout(resolve, 1000)).then(() =>
+              handleBackToList(),
+            );
           }}
           onCancel={handleBackToList}
         />

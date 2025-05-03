@@ -21,7 +21,9 @@ const Dashboard = () => {
     <div className="flex h-screen">
       <Sidebar activeItem={activeItem} setActiveItem={setActiveItem} />
 
-      <div className="flex-1 overflow-auto">{renderWorkspace()}</div>
+      <div className="flex-1 overflow-auto bg-slate-900">
+        {renderWorkspace()}
+      </div>
     </div>
   );
 };

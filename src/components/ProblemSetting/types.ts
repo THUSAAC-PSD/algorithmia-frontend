@@ -1,28 +1,28 @@
 export interface Problem {
-  id: string;
-  timestamp: string;
-  content: ProblemContent;
+  problem_draft_id: string;
+  details: ProblemDetails;
+  examples: ProblemExample[];
+  problem_difficulty_id: string;
+  is_submitted: boolean;
+  target_contest_id: string;
+  comments: string[];
+  created_at: string;
+  updated_at: string;
 }
 
-export interface ProblemContent {
+export interface ProblemDetails {
+  language: string;
   title: string;
   background: string;
-  description: string;
-  inputFormat: string;
-  outputFormat: string;
-  samples: SampleData[];
-  attachedFile?: FileReference;
+  statement: string;
+  input_format: string;
+  output_format: string;
+  note: string;
 }
 
-export interface SampleData {
+export interface ProblemExample {
   input: string;
   output: string;
-}
-
-export interface FileReference {
-  fileId: string;
-  fileName: string;
-  fileSize: number;
 }
 
 export type ViewType = 'list' | 'detail';
