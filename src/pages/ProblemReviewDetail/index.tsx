@@ -232,7 +232,7 @@ const ProblemReviewDetail = () => {
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-slate-900">
+      <div className="flex w-full items-center justify-center bg-slate-900">
         <div className="text-indigo-400 text-xl">Loading problem...</div>
       </div>
     );
@@ -240,14 +240,14 @@ const ProblemReviewDetail = () => {
 
   if (!problem) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-slate-900">
+      <div className="flex w-full items-center justify-center bg-slate-900">
         <div className="text-red-400 text-xl">Problem not found</div>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 bg-slate-900 overflow-auto">
+    <div className="flex w-full bg-slate-900 overflow-auto">
       {notification && (
         <Notification
           message={notification.message}

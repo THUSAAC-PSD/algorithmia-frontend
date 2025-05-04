@@ -112,7 +112,7 @@ const ProblemVerificationDetail = () => {
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-slate-900">
+      <div className="flex w-full items-center justify-center bg-slate-900">
         <div className="text-indigo-400 text-xl">Loading problem...</div>
       </div>
     );
@@ -120,14 +120,14 @@ const ProblemVerificationDetail = () => {
 
   if (!problem) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-slate-900">
+      <div className="flex w-full items-center justify-center bg-slate-900">
         <div className="text-red-400 text-xl">Problem not found</div>
       </div>
     );
   }
 
   return (
-    <div className="flex-1 bg-slate-900 overflow-auto">
+    <div className="flex w-full bg-slate-900 overflow-auto">
       <div className="max-w-5xl mx-auto px-6 py-8">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center">

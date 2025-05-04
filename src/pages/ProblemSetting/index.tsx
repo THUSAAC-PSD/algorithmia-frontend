@@ -105,14 +105,14 @@ const ProblemSetting = () => {
   };
 
   return (
-    <div className="p-6 h-screen w-full flex flex-col overflow-auto bg-slate-900">
+    <div className="flex flex-col h-full bg-slate-900 w-full">
       {currentView === 'list' && (
-        <>
-          <div className="flex items-center justify-between mb-6">
+        <div>
+          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/50">
             <h2 className="text-2xl font-medium text-white">
               Problems & Submissions
             </h2>
-            <div className="flex items-center space-x-4">
+            <div className="flex space-x-4">
               <input
                 type="text"
                 placeholder="Search problems..."
@@ -122,7 +122,7 @@ const ProblemSetting = () => {
               />
               <button
                 onClick={handleAddNewProblem}
-                className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg text-white font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                className="px-3 py-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg text-white font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-300"
                 type="button"
               >
                 Add New Problem
@@ -142,7 +142,7 @@ const ProblemSetting = () => {
             onSort={handleSort}
             renderSortIndicator={renderSortIndicator}
           />
-        </>
+        </div>
       )}
 
       {currentView === 'detail' && (

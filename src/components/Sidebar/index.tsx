@@ -59,7 +59,7 @@ const Sidebar = ({ userRole }: { userRole: string }) => {
 
   return (
     <div
-      className={`${collapsed ? 'w-20' : 'w-72'} bg-slate-800 h-full flex flex-col transition-all duration-300 ease-in-out`}
+      className={`${collapsed ? 'w-20' : 'w-80'} bg-slate-800 h-full flex flex-col transition-all duration-300 ease-in-out`}
     >
       <div className="px-6 py-8 border-b border-slate-700/50">
         <div

@@ -91,7 +91,7 @@ const ProblemDetail = ({ problem, onSave, onCancel }: ProblemFormProps) => {
   };
 
   return (
-    <>
+    <div className="p-6 flex flex-col w-full overflow-y-auto">
       <div className="mb-6 flex items-center">
         <button
           type="button"
@@ -314,7 +314,7 @@ const ProblemDetail = ({ problem, onSave, onCancel }: ProblemFormProps) => {
           </button>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 
