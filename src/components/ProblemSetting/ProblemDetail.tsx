@@ -103,7 +103,7 @@ const ProblemDetail = ({ problem, onSave, onCancel }: ProblemFormProps) => {
         <h1 className="text-2xl font-bold text-white">Problem Detail</h1>
       </div>
 
-      <div className="bg-gray rounded-lg shadow p-6 shadow-slate-800">
+      <div className="bg-gray rounded-lg shadow p-6 bg-slate-800 shadow-slate-800">
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div>
             <label className="block text-lg font-bold text-white mb-1">
@@ -195,7 +195,7 @@ const ProblemDetail = ({ problem, onSave, onCancel }: ProblemFormProps) => {
                 key={index}
                 className="border border-slate-600 rounded-md p-4 mb-4 bg-slate-800"
               >
-                <div className="flex justify-between items-center mb-2">
+                <div className="flex justify-between items-center mb-3">
                   <h3 className="text-white font-semibold">
                     Sample #{index + 1}
                   </h3>
@@ -213,32 +213,33 @@ const ProblemDetail = ({ problem, onSave, onCancel }: ProblemFormProps) => {
                   </button>
                 </div>
 
-                <div className="mb-3">
-                  <label className="block text-sm font-medium text-white mb-1">
-                    Input
-                  </label>
-                  <textarea
-                    value={sample.input}
-                    onChange={(e) =>
-                      updateSample(index, 'input', e.target.value)
-                    }
-                    className="text-white w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 font-mono"
-                    rows={4}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-white mb-1">
-                    Output
-                  </label>
-                  <textarea
-                    value={sample.output}
-                    onChange={(e) =>
-                      updateSample(index, 'output', e.target.value)
-                    }
-                    className="text-white w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 font-mono"
-                    rows={4}
-                  />
+                <div className="flex justify-between items-start gap-4 w-full">
+                  <div className="w-1/2">
+                    <label className="block text-md font-medium text-white mb-1">
+                      Input
+                    </label>
+                    <textarea
+                      value={sample.input}
+                      onChange={(e) =>
+                        updateSample(index, 'input', e.target.value)
+                      }
+                      className="text-white w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      rows={4}
+                    />
+                  </div>
+                  <div className="w-1/2">
+                    <label className="block text-md font-medium text-white mb-1">
+                      Output
+                    </label>
+                    <textarea
+                      value={sample.output}
+                      onChange={(e) =>
+                        updateSample(index, 'output', e.target.value)
+                      }
+                      className="text-white w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      rows={4}
+                    />
+                  </div>
                 </div>
               </div>
             ))}

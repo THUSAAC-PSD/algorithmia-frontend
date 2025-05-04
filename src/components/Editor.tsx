@@ -1,5 +1,5 @@
 import '@milkdown/crepe/theme/common/style.css';
-import '@milkdown/crepe/theme/frame.css';
+import '@milkdown/crepe/theme/nord-dark.css';
 import '../styles/custom-milkdown.css';
 
 import { Crepe } from '@milkdown/crepe';

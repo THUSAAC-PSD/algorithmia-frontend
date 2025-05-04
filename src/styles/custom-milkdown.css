@@ -2,9 +2,14 @@
   width: 100%;
   /* padding: 0.5rem 0.75rem; */
   border: 1px solid #d1d5db;
+  border-color: rgb(71 85 105);
   border-radius: 0.375rem;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  background-color: #ffffff;
+  background-color: rgb(30 41 59); /* slate-800 */
+}
+
+.milkdown .ProseMirror {
+  padding: 15px 100px;
 }
 
 .milkdown:focus-within {
@@ -13,9 +18,9 @@
   box-shadow: 0 1px 2px 0 rgba(59, 130, 246, 0.05);
 }
 
-.milkdown {
+/* .milkdown {
   --crepe-color-background: #ffffff;
   --crepe-color-on-background: #1b1c1d;
   --crepe-color-surface: #ffffff;
   --crepe-color-surface-low: #f9fafb;
-}
+} */
