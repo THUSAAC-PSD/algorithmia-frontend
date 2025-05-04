@@ -37,6 +37,17 @@ const ProblemSetting = () => {
     setProblems(problems.filter((problem) => problem.problem_draft_id !== id));
   };
 
+  const handleSubmitProblem = (id: string) => {
+    // TODO: Request to submit the problem
+    setProblems(
+      problems.map((problem) =>
+        problem.problem_draft_id === id
+          ? { ...problem, is_submitted: true }
+          : problem,
+      ),
+    );
+  };
+
   const handleProblemClick = (id: string) => {
     // Find the selected problem and set the view to detail
     const problem = problems.find((p) => p.problem_draft_id === id);
@@ -65,6 +76,7 @@ const ProblemSetting = () => {
           onProblemClick={handleProblemClick}
           onDeleteProblem={handleDeleteProblem}
           onAddNewProblem={handleAddNewProblem}
+          onSubmitProblem={handleSubmitProblem}
         />
       )}
 

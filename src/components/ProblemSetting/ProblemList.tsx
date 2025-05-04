@@ -1,4 +1,4 @@
-import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { CheckIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 import { Problem } from './types';
 
@@ -7,6 +7,7 @@ interface ProblemListProps {
   onProblemClick: (id: string) => void;
   onDeleteProblem: (id: string) => void;
   onAddNewProblem: () => void;
+  onSubmitProblem: (id: string) => void;
 }
 
 const ProblemList = ({
@@ -14,6 +15,7 @@ const ProblemList = ({
   onProblemClick,
   onDeleteProblem,
   onAddNewProblem,
+  onSubmitProblem,
 }: ProblemListProps) => {
   return (
     <>
@@ -47,6 +49,12 @@ const ProblemList = ({
               </th>
               <th
                 scope="col"
+                className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider"
+              >
+                Status
+              </th>
+              <th
+                scope="col"
                 className="px-6 py-3 text-right text-xs font-medium text-white uppercase tracking-wider"
               >
                 Actions
@@ -66,7 +74,22 @@ const ProblemList = ({
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
                   {problem.updated_at}
                 </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 font-medium">
+                  {problem.is_submitted ? 'Submitted' : 'Draft'}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  {!problem.is_submitted && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSubmitProblem(problem.problem_draft_id);
+                      }}
+                      className="text-green-600 hover:text-green-800 mr-2"
+                    >
+                      <CheckIcon className="w-5 h-5" />
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={(e) => {
