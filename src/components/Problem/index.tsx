@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 export interface IProblem {
   id: string;
@@ -33,12 +34,18 @@ interface ProblemProps {
   language?: string;
 }
 
-const Problem: React.FC<ProblemProps> = ({ problem, language = 'en' }) => {
+const Problem: React.FC<ProblemProps> = ({ problem, language }) => {
+  const { t, i18n } = useTranslation();
+
+  // Use i18n's current language if no specific language is provided
+  const currentLanguage = language || i18n.language;
+
   // Get details in the preferred language, or the first available
   const details =
-    problem.details.find((d) => d.language === language) || problem.details[0];
+    problem.details.find((d) => d.language === currentLanguage) ||
+    problem.details[0];
   const difficulty =
-    problem.problem_difficulty.find((d) => d.language === language)
+    problem.problem_difficulty.find((d) => d.language === currentLanguage)
       ?.display_name ||
     problem.problem_difficulty[0]?.display_name ||
     'Unknown';
@@ -49,25 +56,25 @@ const Problem: React.FC<ProblemProps> = ({ problem, language = 'en' }) => {
       case 'pending':
         return (
           <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400">
-            Pending
+            {t('problem.statuses.pending')}
           </span>
         );
       case 'approved':
         return (
           <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400">
-            Approved
+            {t('problem.statuses.approved')}
           </span>
         );
       case 'rejected':
         return (
           <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400">
-            Rejected
+            {t('problem.statuses.rejected')}
           </span>
         );
       case 'needs_changes':
         return (
           <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-500/20 text-orange-400">
-            Needs Changes
+            {t('problem.statuses.needs_changes')}
           </span>
         );
       default:
@@ -92,14 +99,18 @@ const Problem: React.FC<ProblemProps> = ({ problem, language = 'en' }) => {
         <div className="flex flex-wrap items-center mt-3 gap-3">
           {problem.author && (
             <div className="flex items-center text-sm">
-              <span className="text-slate-400 mr-1">Author:</span>
+              <span className="text-slate-400 mr-1">
+                {t('problem.author')}:
+              </span>
               <span className="text-slate-200">{problem.author}</span>
             </div>
           )}
 
           {problem.status && (
             <div className="flex items-center text-sm">
-              <span className="text-slate-400 mr-1">Status:</span>
+              <span className="text-slate-400 mr-1">
+                {t('problem.status')}:
+              </span>
               {getStatusBadge(problem.status)}
             </div>
           )}
@@ -108,7 +119,9 @@ const Problem: React.FC<ProblemProps> = ({ problem, language = 'en' }) => {
 
       {details.background && (
         <div className="mb-6">
-          <h3 className="text-lg font-semibold text-white mb-2">Background</h3>
+          <h3 className="text-lg font-semibold text-white mb-2">
+            {t('problem.background')}
+          </h3>
           <div className="text-slate-300 prose prose-invert max-w-none">
             {details.background}
           </div>
@@ -118,7 +131,7 @@ const Problem: React.FC<ProblemProps> = ({ problem, language = 'en' }) => {
       {details.statement && (
         <div className="mb-6">
           <h3 className="text-lg font-semibold text-white mb-2">
-            Problem Statement
+            {t('problem.statement')}
           </h3>
           <div className="text-slate-300 prose prose-invert max-w-none">
             {details.statement}
@@ -129,7 +142,7 @@ const Problem: React.FC<ProblemProps> = ({ problem, language = 'en' }) => {
       {details.input_format && (
         <div className="mb-6">
           <h3 className="text-lg font-semibold text-white mb-2">
-            Input Format
+            {t('problem.inputFormat')}
           </h3>
           <div className="text-slate-300 prose prose-invert max-w-none">
             {details.input_format}
@@ -140,7 +153,7 @@ const Problem: React.FC<ProblemProps> = ({ problem, language = 'en' }) => {
       {details.output_format && (
         <div className="mb-6">
           <h3 className="text-lg font-semibold text-white mb-2">
-            Output Format
+            {t('problem.outputFormat')}
           </h3>
           <div className="text-slate-300 prose prose-invert max-w-none">
             {details.output_format}
@@ -150,13 +163,15 @@ const Problem: React.FC<ProblemProps> = ({ problem, language = 'en' }) => {
 
       {problem.examples && problem.examples.length > 0 && (
         <div className="mb-6">
-          <h3 className="text-lg font-semibold text-white mb-2">Examples</h3>
+          <h3 className="text-lg font-semibold text-white mb-2">
+            {t('problem.examples')}
+          </h3>
           <div className="space-y-4">
             {problem.examples.map((example) => (
               <div key={example.input} className="grid grid-cols-2 gap-4">
                 <div className="bg-slate-900 p-4 rounded-lg">
                   <div className="text-sm font-medium text-slate-400 mb-2">
-                    Input:
+                    {t('problem.input')}:
                   </div>
                   <pre className="text-slate-200 whitespace-pre-wrap font-mono text-sm">
                     {example.input}
@@ -164,7 +179,7 @@ const Problem: React.FC<ProblemProps> = ({ problem, language = 'en' }) => {
                 </div>
                 <div className="bg-slate-900 p-4 rounded-lg">
                   <div className="text-sm font-medium text-slate-400 mb-2">
-                    Output:
+                    {t('problem.output')}:
                   </div>
                   <pre className="text-slate-200 whitespace-pre-wrap font-mono text-sm">
                     {example.output}
@@ -178,7 +193,9 @@ const Problem: React.FC<ProblemProps> = ({ problem, language = 'en' }) => {
 
       {details.note && (
         <div className="mb-6">
-          <h3 className="text-lg font-semibold text-white mb-2">Notes</h3>
+          <h3 className="text-lg font-semibold text-white mb-2">
+            {t('problem.notes')}
+          </h3>
           <div className="text-slate-300 prose prose-invert max-w-none">
             {details.note}
           </div>

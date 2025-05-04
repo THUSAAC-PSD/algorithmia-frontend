@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 import { Problem } from './types';
 
 interface ProblemListProps {
@@ -24,26 +26,41 @@ const ProblemList: React.FC<ProblemListProps> = ({
   onSort,
   renderSortIndicator,
 }) => {
+  const { t } = useTranslation();
+
   // Define sortable columns
   const sortableColumns: Array<{
     key: keyof Problem;
     label: string;
     accessor: (problem: Problem) => string;
   }> = [
-    { key: 'details', label: 'Title', accessor: (p) => p.details.title },
-    { key: 'created_at', label: 'Created At', accessor: (p) => p.created_at },
-    { key: 'updated_at', label: 'Updated At', accessor: (p) => p.updated_at },
+    {
+      key: 'details',
+      label: t('problemList.title'),
+      accessor: (p) => p.details.title,
+    },
+    {
+      key: 'created_at',
+      label: t('problemList.createdAt'),
+      accessor: (p) => p.created_at,
+    },
+    {
+      key: 'updated_at',
+      label: t('problemList.updatedAt'),
+      accessor: (p) => p.updated_at,
+    },
     {
       key: 'is_submitted',
-      label: 'Status',
-      accessor: (p) => (p.is_submitted ? 'Submitted' : 'Draft'),
+      label: t('problemList.status'),
+      accessor: (p) =>
+        p.is_submitted ? t('problemList.submitted') : t('problemList.draft'),
     },
   ];
 
   return (
     <div className="overflow-x-auto">
       {problems.length === 0 ? (
-        <p className="text-slate-400">No problems found.</p>
+        <p className="text-slate-400">{t('problemList.noProblem')}</p>
       ) : (
         <table className="min-w-full divide-y divide-slate-700">
           <thead className="bg-slate-800">
@@ -67,15 +84,12 @@ const ProblemList: React.FC<ProblemListProps> = ({
                       }`}
                     >
                       {renderSortIndicator(column.key)}
-                      {sortColumn !== column.key && (
-                        <span className="text-xs">↕</span>
-                      )}
                     </span>
                   </button>
                 </th>
               ))}
               <th className="px-6 py-3 text-left text-sm font-medium text-white">
-                Actions
+                {t('problemList.actions')}
               </th>
             </tr>
           </thead>
@@ -102,7 +116,9 @@ const ProblemList: React.FC<ProblemListProps> = ({
                         : 'bg-yellow-100 text-yellow-800'
                     }`}
                   >
-                    {problem.is_submitted ? 'Submitted' : 'Draft'}
+                    {problem.is_submitted
+                      ? t('problemList.submitted')
+                      : t('problemList.draft')}
                   </span>
                 </td>
                 <td className="px-6 py-4 text-sm flex space-x-2">
@@ -112,7 +128,7 @@ const ProblemList: React.FC<ProblemListProps> = ({
                       className="px-3 py-1 bg-indigo-500 hover:bg-indigo-600 rounded text-white text-xs"
                       type="button"
                     >
-                      Submit
+                      {t('problemList.submit')}
                     </button>
                   )}
                   <button
@@ -120,24 +136,22 @@ const ProblemList: React.FC<ProblemListProps> = ({
                     className="px-3 py-1 bg-blue-500 hover:bg-blue-600 rounded text-white text-xs"
                     type="button"
                   >
-                    Modify
+                    {t('problemList.modify')}
                   </button>
                   <button
                     onClick={() => onDeleteProblem(problem.problem_draft_id)}
                     className="px-3 py-1 bg-red-500 hover:bg-red-600 rounded text-white text-xs"
                     type="button"
                   >
-                    Delete
+                    {t('problemList.delete')}
                   </button>
-                  {problem.is_submitted && (
-                    <button
-                      onClick={() => onNavigateToChat(problem.problem_draft_id)}
-                      className="px-3 py-1 bg-green-500 hover:bg-green-600 rounded text-white text-xs"
-                      type="button"
-                    >
-                      Chat
-                    </button>
-                  )}
+                  <button
+                    onClick={() => onNavigateToChat(problem.problem_draft_id)}
+                    className="px-3 py-1 bg-green-500 hover:bg-green-600 rounded text-white text-xs"
+                    type="button"
+                  >
+                    {t('problemList.chat')}
+                  </button>
                 </td>
               </tr>
             ))}

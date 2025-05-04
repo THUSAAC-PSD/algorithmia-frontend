@@ -6,11 +6,13 @@ import {
   XCircleIcon,
 } from '@heroicons/react/24/outline';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import Problem, { IProblem } from '../../components/Problem';
 
 const ProblemVerificationDetail = () => {
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [problem, setProblem] = useState<IProblem | null>(null);
@@ -81,7 +83,7 @@ const ProblemVerificationDetail = () => {
 
   const handleSubmitFeedback = async () => {
     if (!selectedStatus) {
-      alert('Please select a status for this problem');
+      alert(t('problemVerificationDetail.selectStatusAlert'));
       return;
     }
 
@@ -113,7 +115,9 @@ const ProblemVerificationDetail = () => {
   if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center bg-slate-900">
-        <div className="text-indigo-400 text-xl">Loading problem...</div>
+        <div className="text-indigo-400 text-xl">
+          {t('problemVerificationDetail.loading')}
+        </div>
       </div>
     );
   }
@@ -121,7 +125,9 @@ const ProblemVerificationDetail = () => {
   if (!problem) {
     return (
       <div className="flex-1 flex items-center justify-center bg-slate-900">
-        <div className="text-red-400 text-xl">Problem not found</div>
+        <div className="text-red-400 text-xl">
+          {t('problemVerificationDetail.notFound')}
+        </div>
       </div>
     );
   }
@@ -137,10 +143,10 @@ const ProblemVerificationDetail = () => {
               type="button"
             >
               <ArrowLeftIcon className="w-5 h-5 mr-1" />
-              Back to list
+              {t('problemVerificationDetail.backToList')}
             </button>
             <h1 className="text-xl font-medium text-white">
-              Problem Verification
+              {t('problemVerificationDetail.title')}
             </h1>
           </div>
 
@@ -151,7 +157,7 @@ const ProblemVerificationDetail = () => {
             type="button"
           >
             <ChatBubbleLeftRightIcon className="w-5 h-5 mr-2" />
-            Open Chat
+            {t('problemVerificationDetail.openChat')}
           </button>
         </div>
 
@@ -161,12 +167,12 @@ const ProblemVerificationDetail = () => {
         {/* Feedback Section */}
         <div className="mt-8 bg-slate-800 rounded-lg border border-slate-700 p-6">
           <h2 className="text-xl font-bold text-white mb-6">
-            Provide Feedback
+            {t('problemVerificationDetail.provideFeedback')}
           </h2>
 
           <div className="mb-6">
             <h3 className="text-lg font-semibold text-white mb-3">
-              Status Decision
+              {t('problemVerificationDetail.statusDecision')}
             </h3>
             <div className="flex space-x-4">
               <button
@@ -179,7 +185,7 @@ const ProblemVerificationDetail = () => {
                 onClick={() => handleStatusSelect('approved')}
               >
                 <CheckCircleIcon className="w-5 h-5 mr-2" />
-                Approve
+                {t('problemVerificationDetail.approve')}
               </button>
               <button
                 className={`flex items-center px-4 py-2 rounded-lg border ${
@@ -191,7 +197,7 @@ const ProblemVerificationDetail = () => {
                 onClick={() => handleStatusSelect('rejected')}
               >
                 <XCircleIcon className="w-5 h-5 mr-2" />
-                Reject
+                {t('problemVerificationDetail.reject')}
               </button>
               <button
                 className={`flex items-center px-4 py-2 rounded-lg border ${
@@ -203,19 +209,19 @@ const ProblemVerificationDetail = () => {
                 onClick={() => handleStatusSelect('needs_changes')}
               >
                 <PencilIcon className="w-5 h-5 mr-2" />
-                Request Changes
+                {t('problemVerificationDetail.requestChanges')}
               </button>
             </div>
           </div>
 
           <div className="mb-6">
             <h3 className="text-lg font-semibold text-white mb-3">
-              Feedback Comments
+              {t('problemVerificationDetail.feedbackComments')}
             </h3>
             <textarea
               className="w-full p-4 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
               rows={6}
-              placeholder="Provide detailed feedback for the problem author..."
+              placeholder={t('problemVerificationDetail.feedbackPlaceholder')}
               value={feedbackText}
               onChange={(e) => setFeedbackText(e.target.value)}
             ></textarea>
@@ -227,7 +233,7 @@ const ProblemVerificationDetail = () => {
               onClick={handleSubmitFeedback}
               type="button"
             >
-              Submit Feedback
+              {t('problemVerificationDetail.submitFeedback')}
             </button>
           </div>
         </div>

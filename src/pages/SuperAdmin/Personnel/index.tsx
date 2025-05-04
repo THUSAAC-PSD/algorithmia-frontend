@@ -6,6 +6,7 @@ import {
   XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface User {
   user_id: string;
@@ -16,6 +17,7 @@ interface User {
 }
 
 const PersonnelManagement = () => {
+  const { t } = useTranslation();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -111,7 +113,6 @@ const PersonnelManagement = () => {
         ),
       );
     }
-
     setShowUserModal(false);
   };
 
@@ -132,14 +133,15 @@ const PersonnelManagement = () => {
   // Get username by user ID
   const getUsernameById = (userId: string) => {
     const user = users.find((u) => u.user_id === userId);
-    return user ? user.username : 'Unknown User';
+    return user ? user.username : t('personnel.unknownUser');
   };
 
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-white">Personnel Management</h1>
-        {/* Removed Add User button */}
+        <h1 className="text-2xl font-bold text-white">
+          {t('personnel.title')}
+        </h1>
       </div>
 
       {/* Filters and Search */}
@@ -154,7 +156,7 @@ const PersonnelManagement = () => {
           <input
             type="text"
             className="block w-full rounded-md border-0 bg-slate-800 py-2.5 pl-10 pr-3 text-slate-300 placeholder:text-slate-500 focus:ring-1 focus:ring-indigo-500"
-            placeholder="Search users by username or email..."
+            placeholder={t('personnel.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -166,11 +168,13 @@ const PersonnelManagement = () => {
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value)}
           >
-            <option value="all">All Roles</option>
-            <option value="user">User</option>
-            <option value="verifier">Verifier</option>
-            <option value="admin">Admin</option>
-            <option value="super_admin">Super Admin</option>
+            <option value="all">{t('personnel.filter.all')}</option>
+            <option value="user">{t('personnel.filter.user')}</option>
+            <option value="verifier">{t('personnel.filter.verifier')}</option>
+            <option value="admin">{t('personnel.filter.admin')}</option>
+            <option value="super_admin">
+              {t('personnel.filter.super_admin')}
+            </option>
           </select>
         </div>
       </div>
@@ -179,30 +183,30 @@ const PersonnelManagement = () => {
       <div className="bg-slate-800 rounded-lg overflow-hidden">
         {loading ? (
           <div className="p-8 text-center text-slate-400">
-            <div className="animate-pulse">Loading users...</div>
+            <div className="animate-pulse">{t('personnel.loading')}</div>
           </div>
         ) : filteredUsers.length === 0 ? (
           <div className="p-8 text-center text-slate-400">
-            No users found matching your filters.
+            {t('personnel.noUsersFound')}
           </div>
         ) : (
           <table className="min-w-full divide-y divide-slate-700">
             <thead className="bg-slate-700/30">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                  User ID
+                  {t('personnel.table.userId')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                  User
+                  {t('personnel.table.user')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                  Role
+                  {t('personnel.table.role')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                  Created At
+                  {t('personnel.table.createdAt')}
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">
-                  Actions
+                  {t('personnel.table.actions')}
                 </th>
               </tr>
             </thead>
@@ -228,7 +232,7 @@ const PersonnelManagement = () => {
                     <span
                       className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getRoleBadgeClass(user.role)}`}
                     >
-                      {user.role.replace('_', ' ')}
+                      {t(`personnel.roles.${user.role}`)}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">
@@ -239,7 +243,7 @@ const PersonnelManagement = () => {
                       <button
                         onClick={() => handleEditUser(user)}
                         className="p-1 rounded-full hover:bg-slate-600 text-slate-300"
-                        title="Edit User"
+                        title={t('personnel.editUser')}
                         type="button"
                       >
                         <PencilIcon className="h-5 w-5" />
@@ -248,7 +252,7 @@ const PersonnelManagement = () => {
                         onClick={() => handleDeleteClick(user.user_id)}
                         className="p-1 rounded-full hover:bg-slate-600 text-slate-300"
                         type="button"
-                        title="Delete User"
+                        title={t('personnel.deleteUser')}
                       >
                         <TrashIcon className="h-5 w-5" />
                       </button>
@@ -272,7 +276,9 @@ const PersonnelManagement = () => {
           >
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
               <h2 className="text-lg font-medium text-white">
-                Edit User: {currentUser?.username}
+                {t('personnel.editUserModalTitle', {
+                  username: currentUser?.username,
+                })}
               </h2>
               <button
                 onClick={() => setShowUserModal(false)}
@@ -287,7 +293,7 @@ const PersonnelManagement = () => {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-1">
-                    Username
+                    {t('personnel.form.username')}
                   </label>
                   <input
                     type="text"
@@ -301,7 +307,7 @@ const PersonnelManagement = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-1">
-                    Email
+                    {t('personnel.form.email')}
                   </label>
                   <input
                     type="email"
@@ -315,7 +321,7 @@ const PersonnelManagement = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-1">
-                    Role
+                    {t('personnel.form.role')}
                   </label>
                   <select
                     className="w-full rounded-md border-0 bg-slate-700 py-2 px-3 text-slate-300 focus:ring-1 focus:ring-indigo-500"
@@ -324,10 +330,14 @@ const PersonnelManagement = () => {
                       setFormData({ ...formData, role: e.target.value })
                     }
                   >
-                    <option value="user">User</option>
-                    <option value="verifier">Verifier</option>
-                    <option value="admin">Admin</option>
-                    <option value="super_admin">Super Admin</option>
+                    <option value="user">{t('personnel.filter.user')}</option>
+                    <option value="verifier">
+                      {t('personnel.filter.verifier')}
+                    </option>
+                    <option value="admin">{t('personnel.filter.admin')}</option>
+                    <option value="super_admin">
+                      {t('personnel.filter.super_admin')}
+                    </option>
                   </select>
                 </div>
               </div>
@@ -338,14 +348,14 @@ const PersonnelManagement = () => {
                   className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg"
                   type="button"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   onClick={handleSaveUser}
                   className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg"
                   type="button"
                 >
-                  Save Changes
+                  {t('personnel.saveChanges')}
                 </button>
               </div>
             </div>
@@ -353,7 +363,7 @@ const PersonnelManagement = () => {
         </div>
       )}
 
-      {/* Delete Confirmation Modal with Animation */}
+      {/* Delete Confirmation Modal */}
       {showDeleteModal && (
         <div
           className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
@@ -370,17 +380,15 @@ const PersonnelManagement = () => {
             <div className="bg-red-500/10 px-6 py-4 flex items-center border-b border-slate-700">
               <ExclamationTriangleIcon className="h-6 w-6 text-red-400 mr-3" />
               <h2 className="text-lg font-medium text-white">
-                Confirm Deletion
+                {t('personnel.confirmDeletion')}
               </h2>
             </div>
 
             <div className="p-6">
               <p className="text-slate-300">
-                Are you sure you want to delete user{' '}
-                <span className="font-semibold text-white">
-                  {getUsernameById(userToDelete || '')}
-                </span>
-                ? This action cannot be undone.
+                {t('personnel.deleteConfirmation', {
+                  username: getUsernameById(userToDelete || ''),
+                })}
               </p>
 
               <div className="flex justify-end gap-3 mt-6">
@@ -389,14 +397,14 @@ const PersonnelManagement = () => {
                   className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
                   type="button"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   onClick={confirmDelete}
                   className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
                   type="button"
                 >
-                  Delete
+                  {t('personnel.deleteUser')}
                 </button>
               </div>
             </div>

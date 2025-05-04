@@ -1,11 +1,13 @@
 import { ArrowsUpDownIcon, ClockIcon } from '@heroicons/react/24/outline';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 import { IProblem } from '../../components/Problem';
 
 const ProblemReview = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [problems, setProblems] = useState<IProblem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -140,25 +142,25 @@ const ProblemReview = () => {
       case 'pending':
         return (
           <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400">
-            Pending
+            {t('problemReview.statuses.pending')}
           </span>
         );
       case 'approved':
         return (
           <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400">
-            Approved
+            {t('problemReview.statuses.approved')}
           </span>
         );
       case 'rejected':
         return (
           <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400">
-            Rejected
+            {t('problemReview.statuses.rejected')}
           </span>
         );
       case 'needs_changes':
         return (
           <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-500/20 text-orange-400">
-            Needs Changes
+            {t('problemReview.statuses.needsChanges')}
           </span>
         );
       default:
@@ -174,31 +176,48 @@ const ProblemReview = () => {
   return (
     <div className="flex flex-col h-full bg-slate-900 w-full">
       <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/50">
-        <h2 className="text-2xl font-medium text-white">Problem Review</h2>
+        <h2 className="text-2xl font-medium text-white">
+          {t('problemReview.title')}
+        </h2>
         <div className="flex space-x-4">
           <button
             onClick={toggleSortOrder}
             className="flex items-center px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none hover:bg-slate-600 transition-colors"
-            title={`Sort by ${sortOrder === 'newest' ? 'oldest' : 'newest'} first`}
+            title={t('problemReview.sortBy', {
+              order:
+                sortOrder === 'newest'
+                  ? t('problemReview.oldest')
+                  : t('problemReview.newest'),
+            })}
             type="button"
           >
             <ArrowsUpDownIcon className="w-5 h-5 mr-2" />
-            {sortOrder === 'newest' ? 'Newest First' : 'Oldest First'}
+            {sortOrder === 'newest'
+              ? t('problemReview.newestFirst')
+              : t('problemReview.oldestFirst')}
           </button>
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
             className="px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
-            <option value="all">All Status</option>
-            <option value="pending">Pending</option>
-            <option value="approved">Approved</option>
-            <option value="rejected">Rejected</option>
-            <option value="needs_changes">Needs Changes</option>
+            <option value="all">{t('problemReview.allStatus')}</option>
+            <option value="pending">
+              {t('problemReview.statuses.pending')}
+            </option>
+            <option value="approved">
+              {t('problemReview.statuses.approved')}
+            </option>
+            <option value="rejected">
+              {t('problemReview.statuses.rejected')}
+            </option>
+            <option value="needs_changes">
+              {t('problemReview.statuses.needsChanges')}
+            </option>
           </select>
           <input
             type="text"
-            placeholder="Search problems..."
+            placeholder={t('problemReview.searchPlaceholder')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -213,10 +232,8 @@ const ProblemReview = () => {
           </div>
         ) : filteredAndSortedProblems.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-slate-400">
-            <p className="text-xl">No problems found for review</p>
-            <p className="mt-2">
-              Try adjusting your filters or check back later
-            </p>
+            <p className="text-xl">{t('problemReview.noProblemsFound')}</p>
+            <p className="mt-2">{t('problemReview.tryAdjustingFilters')}</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -231,23 +248,28 @@ const ProblemReview = () => {
                     <div className="flex-1">
                       <div className="flex items-center">
                         <h3 className="text-lg font-medium text-white">
-                          {problem.details[0]?.title || 'Untitled Problem'}
+                          {problem.details[0]?.title ||
+                            t('problemReview.untitledProblem')}
                         </h3>
                         <span className="ml-3">
                           {getStatusBadge(problem.status)}
                         </span>
                       </div>
                       <div className="mt-2 text-sm text-slate-400 flex items-center space-x-4">
-                        <span>Author: {problem.author || 'Unknown'}</span>
+                        <span>
+                          {t('problemReview.author')}:{' '}
+                          {problem.author || t('problemReview.unknown')}
+                        </span>
                         <span className="flex items-center">
                           <ClockIcon className="w-4 h-4 mr-1 inline" />
-                          Submitted on {problem.created_at.toLocaleDateString()}
+                          {t('problemReview.submittedOn')}{' '}
+                          {problem.created_at.toLocaleDateString()}
                         </span>
                       </div>
                     </div>
-
                     <div className="px-3 py-1 bg-indigo-500/20 text-indigo-400 rounded-full text-sm">
-                      {problem.problem_difficulty[0]?.display_name || 'Unknown'}
+                      {problem.problem_difficulty[0]?.display_name ||
+                        t('problemReview.unknown')}
                     </div>
                   </div>
                 </div>

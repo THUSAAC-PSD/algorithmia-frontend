@@ -9,6 +9,7 @@ import {
   XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface Competition {
   contest_id: string;
@@ -21,6 +22,7 @@ interface Competition {
 }
 
 const CompetitionManagement = () => {
+  const { t } = useTranslation();
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -159,12 +161,14 @@ const CompetitionManagement = () => {
   // Get title by ID
   const getTitleById = (contestId: string) => {
     const competition = competitions.find((c) => c.contest_id === contestId);
-    return competition ? competition.title : 'Unknown Competition';
+    return competition
+      ? competition.title
+      : t('competitions.unknownCompetition');
   };
 
   // Format date for display
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString(undefined, {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -175,7 +179,7 @@ const CompetitionManagement = () => {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-white">
-          Competition Management
+          {t('competitions.managementTitle')}
         </h1>
 
         <button
@@ -194,7 +198,7 @@ const CompetitionManagement = () => {
           type="button"
         >
           <PlusIcon className="w-5 h-5 mr-2" />
-          New Competition
+          {t('competitions.newCompetition')}
         </button>
       </div>
 
@@ -209,7 +213,7 @@ const CompetitionManagement = () => {
           <input
             type="text"
             className="block w-full rounded-md border-0 bg-slate-800 py-2.5 pl-10 pr-3 text-slate-300 placeholder:text-slate-500 focus:ring-1 focus:ring-indigo-500"
-            placeholder="Search competitions..."
+            placeholder={t('competitions.searchPlaceholder')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -219,33 +223,33 @@ const CompetitionManagement = () => {
       <div className="bg-slate-800 rounded-lg overflow-hidden">
         {loading ? (
           <div className="p-8 text-center text-slate-400">
-            <div className="animate-pulse">Loading competitions...</div>
+            <div className="animate-pulse">{t('competitions.loading')}</div>
           </div>
         ) : filteredCompetitions.length === 0 ? (
           <div className="p-8 text-center text-slate-400">
-            No competitions found matching your search.
+            {t('competitions.noCompetitionsFound')}
           </div>
         ) : (
           <table className="min-w-full divide-y divide-slate-700">
             <thead className="bg-slate-700/30">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                  Contest ID
+                  {t('competitions.table.contestId')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                  Competition Details
+                  {t('competitions.table.details')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                  Problem Count
+                  {t('competitions.table.problemCount')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                  Deadline
+                  {t('competitions.table.deadline')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                  Created At
+                  {t('competitions.table.createdAt')}
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">
-                  Actions
+                  {t('competitions.table.actions')}
                 </th>
               </tr>
             </thead>
@@ -286,7 +290,7 @@ const CompetitionManagement = () => {
                       <button
                         onClick={() => handleEditCompetition(competition)}
                         className="p-1 rounded-full hover:bg-slate-600 text-slate-300"
-                        title="Edit Competition"
+                        title={t('competitions.editCompetition')}
                         type="button"
                       >
                         <PencilIcon className="h-5 w-5" />
@@ -296,7 +300,7 @@ const CompetitionManagement = () => {
                           handleDeleteClick(competition.contest_id)
                         }
                         className="p-1 rounded-full hover:bg-slate-600 text-slate-300"
-                        title="Delete Competition"
+                        title={t('competitions.deleteCompetition')}
                         type="button"
                       >
                         <TrashIcon className="h-5 w-5" />
@@ -310,6 +314,7 @@ const CompetitionManagement = () => {
         )}
       </div>
 
+      {/* Competition Modal */}
       {showCompetitionModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
           <div
@@ -321,8 +326,10 @@ const CompetitionManagement = () => {
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
               <h2 className="text-lg font-medium text-white">
                 {currentCompetition
-                  ? `Edit Competition: ${currentCompetition.title}`
-                  : 'Create New Competition'}
+                  ? t('competitions.editCompetitionModalTitle', {
+                      title: currentCompetition.title,
+                    })
+                  : t('competitions.createCompetitionModalTitle')}
               </h2>
               <button
                 onClick={() => setShowCompetitionModal(false)}
@@ -337,7 +344,7 @@ const CompetitionManagement = () => {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-1">
-                    Competition Title
+                    {t('competitions.form.title')}
                   </label>
                   <input
                     type="text"
@@ -346,13 +353,13 @@ const CompetitionManagement = () => {
                     onChange={(e) =>
                       setFormData({ ...formData, title: e.target.value })
                     }
-                    placeholder="Enter competition title"
+                    placeholder={t('competitions.form.titlePlaceholder')}
                   />
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-1">
-                    Description (Markdown supported)
+                    {t('competitions.form.description')}
                   </label>
                   <textarea
                     rows={3}
@@ -361,14 +368,14 @@ const CompetitionManagement = () => {
                     onChange={(e) =>
                       setFormData({ ...formData, description: e.target.value })
                     }
-                    placeholder="Enter competition description"
+                    placeholder={t('competitions.form.descriptionPlaceholder')}
                   />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-300 mb-1">
-                      Minimum Problem Count
+                      {t('competitions.form.minProblemCount')}
                     </label>
                     <input
                       type="number"
@@ -386,7 +393,7 @@ const CompetitionManagement = () => {
 
                   <div>
                     <label className="block text-sm font-medium text-slate-300 mb-1">
-                      Maximum Problem Count
+                      {t('competitions.form.maxProblemCount')}
                     </label>
                     <input
                       type="number"
@@ -407,7 +414,7 @@ const CompetitionManagement = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-1">
-                    Deadline (UTC)
+                    {t('competitions.form.deadline')}
                   </label>
                   <input
                     type="date"
@@ -421,7 +428,7 @@ const CompetitionManagement = () => {
                     }
                   />
                   <p className="mt-1 text-xs text-slate-400">
-                    The deadline for accepting new problems for this competition
+                    {t('competitions.form.deadlineHelp')}
                   </p>
                 </div>
               </div>
@@ -432,7 +439,7 @@ const CompetitionManagement = () => {
                   className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg"
                   type="button"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   onClick={handleSaveCompetition}
@@ -440,7 +447,9 @@ const CompetitionManagement = () => {
                   type="button"
                 >
                   <CheckCircleIcon className="w-5 h-5 mr-1" />
-                  {currentCompetition ? 'Save Changes' : 'Create Competition'}
+                  {currentCompetition
+                    ? t('competitions.saveChanges')
+                    : t('competitions.createCompetition')}
                 </button>
               </div>
             </div>
@@ -448,6 +457,7 @@ const CompetitionManagement = () => {
         </div>
       )}
 
+      {/* Delete Confirmation Modal */}
       {showDeleteModal && (
         <div
           className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
@@ -464,17 +474,15 @@ const CompetitionManagement = () => {
             <div className="bg-red-500/10 px-6 py-4 flex items-center border-b border-slate-700">
               <ExclamationTriangleIcon className="h-6 w-6 text-red-400 mr-3" />
               <h2 className="text-lg font-medium text-white">
-                Confirm Deletion
+                {t('competitions.confirmDeletion')}
               </h2>
             </div>
 
             <div className="p-6">
               <p className="text-slate-300">
-                Are you sure you want to delete competition{' '}
-                <span className="font-semibold text-white">
-                  {getTitleById(competitionToDelete || '')}
-                </span>
-                ? This action cannot be undone.
+                {t('competitions.deleteConfirmation', {
+                  title: getTitleById(competitionToDelete || ''),
+                })}
               </p>
 
               <div className="flex justify-end gap-3 mt-6">
@@ -483,14 +491,14 @@ const CompetitionManagement = () => {
                   className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
                   type="button"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button
                   onClick={confirmDelete}
                   className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
                   type="button"
                 >
-                  Delete
+                  {t('competitions.deleteCompetition')}
                 </button>
               </div>
             </div>

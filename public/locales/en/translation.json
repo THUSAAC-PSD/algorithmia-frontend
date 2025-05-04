@@ -1,0 +1,188 @@
+{
+  "problem": {
+    "difficulty": "Difficulty",
+    "status": "Status",
+    "author": "Author",
+    "background": "Background",
+    "statement": "Problem Statement",
+    "inputFormat": "Input Format",
+    "outputFormat": "Output Format",
+    "examples": "Examples",
+    "notes": "Notes",
+    "input": "Input",
+    "output": "Output",
+    "statuses": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "needs_changes": "Needs Changes"
+    }
+  },
+  "problemSetting": {
+    "title": "Problems & Submissions",
+    "searchPlaceholder": "Search problems...",
+    "addNewProblem": "Add New Problem"
+  },
+  "sidebar": {
+    "problemSetting": "Problem Setting",
+    "chat": "Chat",
+    "problemVerification": "Problem Verification",
+    "problemBank": "Problem Bank",
+    "problemReview": "Problem Review",
+    "superAdmin": "Super Admin"
+  },
+  "problemList": {
+    "title": "Title",
+    "createdAt": "Created At",
+    "updatedAt": "Last Modified",
+    "status": "Status",
+    "actions": "Actions",
+    "modify": "Modify",
+    "submitted": "Submitted",
+    "delete": "Delete",
+    "chat": "Chat"
+  },
+  "problemVerification": {
+    "title": "Problem Verification",
+    "statuses": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "needsChanges": "Needs Changes"
+    },
+    "allStatus": "All Statuses",
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "needsChanges": "Needs Changes",
+    "searchPlaceholder": "Search problems...",
+    "noProblemsFound": "No problems found",
+    "tryAdjustingFilters": "Try adjusting the filters",
+    "author": "Author",
+    "submittedOn": "Submitted On",
+    "newestFirst": "Newest First",
+    "oldestFirst": "Oldest First"
+  },
+  "problemVerificationDetail": {
+    "loading": "Loading problem...",
+    "notFound": "Problem not found",
+    "backToList": "Back to list",
+    "title": "Problem Verification",
+    "openChat": "Open Chat",
+    "provideFeedback": "Provide Feedback",
+    "statusDecision": "Status Decision",
+    "approve": "Approve",
+    "reject": "Reject",
+    "requestChanges": "Request Changes",
+    "feedbackComments": "Feedback Comments",
+    "feedbackPlaceholder": "Provide detailed feedback for the problem author...",
+    "submitFeedback": "Submit Feedback",
+    "selectStatusAlert": "Please select a status for this problem"
+  },
+  "problemReview": {
+    "title": "Problem Review",
+    "statuses": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "needsChanges": "Needs Changes"
+    },
+    "newestFirst": "Newest First",
+    "oldestFirst": "Oldest First",
+    "searchPlaceholder": "Search problems...",
+    "noProblemsFound": "No problems found",
+    "tryAdjustingFilters": "Try adjusting the filters",
+    "author": "Author",
+    "submittedOn": "Submitted On"
+  },
+  "problemBank": {
+    "title": "Problem Bank",
+    "searchPlaceholder": "Search problems...",
+    "noProblemsFound": "No problems found",
+    "tryAdjustingFilters": "Try adjusting the filters",
+    "author": "Author",
+    "created": "Created",
+    "medium": "Medium",
+    "hard": "Hard",
+    "easy": "Easy",
+    "newestFirst": "Newest First",
+    "oldestFirst": "Oldest First",
+    "selectAll": "Select All",
+    "clearSelection": "Clear Selection",
+    "selectedCount": "{{count}} problems selected",
+    "exportSelected": "Export Selected",
+    "exportHeader": "Export Problems",
+    "exportFormat": "Export Format",
+    "export": "Export"
+  },
+  "superAdmin": {
+    "title": "Super Admin",
+    "personnelManagement": "Personnel Management",
+    "competitionManagement": "Competition Management",
+    "systemSettings": "System Settings"
+  },
+  "personnel": {
+    "title": "Personnel Management",
+    "filter": {
+      "all": "All",
+      "admin": "Admin",
+      "user": "User",
+      "verifier": "Verifier",
+      "reviewer": "Reviewer",
+      "super_admin": "Super Admin"
+    },
+    "roles": {
+      "all": "All",
+      "admin": "Admin",
+      "user": "User",
+      "verifier": "Verifier",
+      "reviewer": "Reviewer",
+      "super_admin": "Super Admin"
+    },
+    "searchPlaceholder": "Search users...",
+    "noUsersFound": "No users found",
+    "table": {
+      "userId": "User ID",
+      "user": "User",
+      "role": "Role",
+      "createdAt": "Created At",
+      "updatedAt": "Last Modified",
+      "actions": "Actions"
+    },
+    "loading": "Loading..."
+  },
+  "competitions": {
+    "managementTitle": "Competition Management",
+    "searchPlaceholder": "Search competitions...",
+    "noCompetitionsFound": "No competitions found",
+    "table": {
+      "contestId": "Competition ID",
+      "details": "Details",
+      "problemCount": "Problem Count",
+      "deadline": "Deadline",
+      "createdAt": "Created At",
+      "actions": "Actions"
+    },
+    "newCompetition": "New Competition",
+    "loading": "Loading...",
+    "createCompetition": "Create Competition",
+    "createCompetitionModalTitle": "New Competition",
+    "editCompetitionModalTitle": "Edit Competition",
+    "form": {
+      "title": "Competition Name",
+      "description": "Description",
+      "titlePlaceholder": "Enter competition name",
+      "descriptionPlaceholder": "Enter description",
+      "minProblemCount": "Minimum Problem Count",
+      "maxProblemCount": "Maximum Problem Count",
+      "deadline": "Deadline",
+      "deadlineHelp": "Please select a deadline"
+    },
+    "confirmDeletion": "Confirm Deletion",
+    "deleteConfirmation": "Are you sure you want to delete this competition?",
+    "deleteCompetition": "Delete Competition"
+  },
+  "common": {
+    "cancel": "Cancel"
+  }
+}

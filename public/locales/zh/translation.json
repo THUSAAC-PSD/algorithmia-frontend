@@ -1,0 +1,188 @@
+{
+  "problem": {
+    "difficulty": "难度",
+    "status": "状态",
+    "author": "作者",
+    "background": "背景",
+    "statement": "题目描述",
+    "inputFormat": "输入格式",
+    "outputFormat": "输出格式",
+    "examples": "示例",
+    "notes": "注释",
+    "input": "输入",
+    "output": "输出",
+    "statuses": {
+      "pending": "待处理",
+      "approved": "已批准",
+      "rejected": "已拒绝",
+      "needs_changes": "需要修改"
+    }
+  },
+  "problemSetting": {
+    "title": "题目和提交",
+    "searchPlaceholder": "搜索题目...",
+    "addNewProblem": "添加新题目"
+  },
+  "sidebar": {
+    "problemSetting": "投题",
+    "chat": "群聊",
+    "problemVerification": "验题",
+    "problemBank": "题库",
+    "problemReview": "审题",
+    "superAdmin": "超级管理员"
+  },
+  "problemList": {
+    "title": "标题",
+    "createdAt": "创建时间",
+    "updatedAt": "最后修改",
+    "status": "状态",
+    "actions": "操作",
+    "modify": "修改",
+    "submitted": "已提交",
+    "delete": "删除",
+    "chat": "交流"
+  },
+  "problemVerification": {
+    "title": "验题",
+    "statuses": {
+      "pending": "待处理",
+      "approved": "已批准",
+      "rejected": "已拒绝",
+      "needsChanges": "需要修改"
+    },
+    "allStatus": "所有状态",
+    "pending": "待处理",
+    "approved": "已批准",
+    "rejected": "已拒绝",
+    "needsChanges": "需要修改",
+    "searchPlaceholder": "搜索题目...",
+    "noProblemsFound": "未找到题目",
+    "tryAdjustingFilters": "请尝试调整筛选条件",
+    "author": "作者",
+    "submittedOn": "提交时间",
+    "newestFirst": "最新优先",
+    "oldestFirst": "最早优先"
+  },
+  "problemVerificationDetail": {
+    "loading": "加载中...",
+    "notFound": "未找到题目",
+    "backToList": "返回列表",
+    "title": "题目验证",
+    "openChat": "开始聊天",
+    "provideFeedback": "提供反馈",
+    "statusDecision": "状态决定",
+    "approve": "批准",
+    "reject": "拒绝",
+    "requestChanges": "请求修改",
+    "feedbackComments": "反馈评论",
+    "feedbackPlaceholder": "为题目作者提供详细反馈...",
+    "submitFeedback": "提交反馈",
+    "selectStatusAlert": "请为此题目选择一个状态"
+  },
+  "problemReview": {
+    "title": "题目审核",
+    "statuses": {
+      "pending": "待处理",
+      "approved": "已批准",
+      "rejected": "已拒绝",
+      "needsChanges": "需要修改"
+    },
+    "newestFirst": "最新优先",
+    "oldestFirst": "最早优先",
+    "searchPlaceholder": "搜索题目...",
+    "noProblemsFound": "未找到题目",
+    "tryAdjustingFilters": "请尝试调整筛选条件",
+    "author": "作者",
+    "submittedOn": "提交时间"
+  },
+  "problemBank": {
+    "title": "题库",
+    "searchPlaceholder": "搜索题目...",
+    "noProblemsFound": "未找到题目",
+    "tryAdjustingFilters": "请尝试调整筛选条件",
+    "author": "作者",
+    "created": "提交时间",
+    "medium": "中等",
+    "hard": "困难",
+    "easy": "简单",
+    "newestFirst": "最新优先",
+    "oldestFirst": "最早优先",
+    "selectAll": "全选",
+    "clearSelection": "清除选择",
+    "selectedCount": "{{count}} 题目已选择",
+    "exportSelected": "导出所选题目",
+    "exportHeader": "导出题目",
+    "exportFormat": "导出格式",
+    "export": "导出"
+  },
+  "superAdmin": {
+    "title": "超级管理员",
+    "personnelManagement": "用户管理",
+    "competitionManagement": "比赛管理",
+    "systemSettings": "系统设置"
+  },
+  "personnel": {
+    "title": "用户管理",
+    "filter": {
+      "all": "所有",
+      "admin": "管理员",
+      "user": "用户",
+      "verifier": "验题员",
+      "reviewer": "审题员",
+      "super_admin": "超级管理员"
+    },
+    "roles": {
+      "all": "所有",
+      "admin": "管理员",
+      "user": "用户",
+      "verifier": "验题员",
+      "reviewer": "审题员",
+      "super_admin": "超级管理员"
+    },
+    "searchPlaceholder": "搜索用户...",
+    "noUsersFound": "未找到用户",
+    "table": {
+      "userId": "用户ID",
+      "user": "用户",
+      "role": "角色",
+      "createdAt": "创建时间",
+      "updatedAt": "最后修改",
+      "actions": "操作"
+    },
+    "loading": "加载中..."
+  },
+  "competitions": {
+    "managementTitle": "比赛管理",
+    "searchPlaceholder": "搜索比赛...",
+    "noCompetitionsFound": "未找到比赛",
+    "table": {
+      "contestId": "比赛ID",
+      "details": "详情",
+      "problemCount": "题目数量",
+      "deadline": "截止日期",
+      "createdAt": "创建时间",
+      "actions": "操作"
+    },
+    "newCompetition": "新建比赛",
+    "loading": "加载中...",
+    "createCompetition": "创建比赛",
+    "createCompetitionModalTitle": "新建比赛",
+    "editCompetitionModalTitle": "编辑比赛",
+    "form": {
+      "title": "比赛名称",
+      "description": "描述",
+      "titlePlaceholder": "请输入比赛名称",
+      "descriptionPlaceholder": "请输入描述",
+      "minProblemCount": "最少题目数量",
+      "maxProblemCount": "最多题目数量",
+      "deadline": "截止日期",
+      "deadlineHelp": "请选择截止日期"
+    },
+    "confirmDeletion": "确认删除",
+    "deleteConfirmation": "您确定要删除此比赛吗？",
+    "deleteCompetition": "删除比赛"
+  },
+  "common": {
+    "cancel": "取消"
+  }
+}

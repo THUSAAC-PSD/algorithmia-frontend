@@ -6,10 +6,12 @@ import {
   XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import Problem, { IProblem } from '../../components/Problem';
 
 const ProblemBank = () => {
+  const { t } = useTranslation();
   // TODO: Fetch problems from API
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [problems, setProblems] = useState<IProblem[]>([
@@ -80,25 +82,25 @@ const ProblemBank = () => {
       case 'Easy':
         return (
           <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400">
-            Easy
+            {t('problemBank.easy')}
           </span>
         );
       case 'Medium':
         return (
           <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400">
-            Medium
+            {t('problemBank.medium')}
           </span>
         );
       case 'Hard':
         return (
           <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400">
-            Hard
+            {t('problemBank.hard')}
           </span>
         );
       default:
         return (
           <span className="px-2 py-1 rounded-full text-xs font-medium bg-slate-500/20 text-slate-400">
-            {difficultyName}
+            {difficultyName || t('problemBank.unknown')}
           </span>
         );
     }
@@ -132,7 +134,7 @@ const ProblemBank = () => {
     );
 
     if (problemsToExport.length === 0) {
-      alert('Please select at least one problem to export');
+      alert(t('problemBank.alertSelectAtLeastOne'));
       return;
     }
 
@@ -169,7 +171,7 @@ const ProblemBank = () => {
           <input
             type="text"
             className="block w-full rounded-md border-0 bg-slate-800 py-2 pl-10 pr-3 text-slate-300 placeholder:text-slate-500 focus:ring-1 focus:ring-indigo-500 sm:text-sm"
-            placeholder="Search problems..."
+            placeholder={t('problemBank.searchPlaceholder')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -179,15 +181,16 @@ const ProblemBank = () => {
           {selectedProblemIds.size > 0 && (
             <div className="flex items-center space-x-4">
               <span className="text-slate-400">
-                {selectedProblemIds.size} problem
-                {selectedProblemIds.size !== 1 ? 's' : ''} selected
+                {t('problemBank.selectedCount', {
+                  count: selectedProblemIds.size,
+                })}
               </span>
               <button
                 onClick={clearSelection}
                 className="px-3 py-1.5 text-xs bg-slate-700 hover:bg-slate-600 text-white rounded-md transition-colors"
                 type="button"
               >
-                Clear Selection
+                {t('problemBank.clearSelection')}
               </button>
             </div>
           )}
@@ -198,7 +201,9 @@ const ProblemBank = () => {
             type="button"
           >
             <ArrowsUpDownIcon className="w-4 h-4 mr-1" />
-            {sortOrder === 'newest' ? 'Newest first' : 'Oldest first'}
+            {sortOrder === 'newest'
+              ? t('problemBank.newestFirst')
+              : t('problemBank.oldestFirst')}
           </button>
 
           <button
@@ -206,7 +211,7 @@ const ProblemBank = () => {
             className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-md text-sm"
             type="button"
           >
-            Select All
+            {t('problemBank.selectAll')}
           </button>
 
           <button
@@ -216,7 +221,7 @@ const ProblemBank = () => {
             type="button"
           >
             <ArrowDownTrayIcon className="w-4 h-4 mr-1" />
-            Export Selected
+            {t('problemBank.exportSelected')}
           </button>
         </div>
       </div>
@@ -224,7 +229,7 @@ const ProblemBank = () => {
       <div className="flex-1 p-6 overflow-auto">
         {filteredProblems.length === 0 ? (
           <div className="text-center text-slate-400 mt-8">
-            No problems found. Try a different search.
+            {t('problemBank.noProblemsFound')}
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4">
@@ -253,13 +258,15 @@ const ProblemBank = () => {
                       </div>
 
                       <h3 className="text-white text-lg font-medium mb-1">
-                        {problem.details[0]?.title || 'Untitled Problem'}
+                        {problem.details[0]?.title ||
+                          t('problemBank.untitledProblem')}
                       </h3>
                     </div>
                     <div className="flex space-x-3 mt-2 ml-8">
                       {getDifficultyBadge(problem)}
                       <span className="text-slate-400 text-sm flex items-center">
-                        Created: {problem.created_at.toLocaleDateString()}
+                        {t('problemBank.created')}:{' '}
+                        {problem.created_at.toLocaleDateString()}
                       </span>
                     </div>
                   </div>
@@ -277,7 +284,7 @@ const ProblemBank = () => {
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
               <div>
                 <h3 className="text-xl font-medium text-white">
-                  Problem Details
+                  {t('problemBank.problemDetails')}
                 </h3>
               </div>
               <button
@@ -299,7 +306,7 @@ const ProblemBank = () => {
                 className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
                 type="button"
               >
-                Close
+                {t('common.close')}
               </button>
             </div>
           </div>
@@ -312,8 +319,9 @@ const ProblemBank = () => {
           <div className="bg-slate-800 rounded-lg w-96 overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
               <h3 className="text-lg font-medium text-white">
-                Export {selectedProblemIds.size} Problem
-                {selectedProblemIds.size !== 1 ? 's' : ''}
+                {t('problemBank.exportHeader', {
+                  count: selectedProblemIds.size,
+                })}
               </h3>
               <button
                 onClick={() => setShowExportOptions(false)}
@@ -326,7 +334,7 @@ const ProblemBank = () => {
             <div className="p-6">
               <div className="mb-4">
                 <label className="block text-slate-300 text-sm font-medium mb-2">
-                  Export Format
+                  {t('problemBank.exportFormat')}
                 </label>
                 <div className="flex space-x-4">
                   <label className="flex items-center">
@@ -348,7 +356,7 @@ const ProblemBank = () => {
                   className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md transition-colors"
                   type="button"
                 >
-                  Export
+                  {t('problemBank.export')}
                 </button>
               </div>
             </div>
