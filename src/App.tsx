@@ -12,7 +12,6 @@ import ProblemReviewDetail from './pages/ProblemReviewDetail';
 import ProblemSetting from './pages/ProblemSetting';
 import ProblemVerification from './pages/ProblemVerification';
 import ProblemVerificationDetail from './pages/ProblemVerificationDetail';
-import Submissions from './pages/Submissions';
 import SuperAdmin from './pages/SuperAdmin';
 import CompetitionManagement from './pages/SuperAdmin/Competitions';
 import PersonnelManagement from './pages/SuperAdmin/Personnel';
@@ -80,10 +79,6 @@ function App() {
           <Route
             path="/chat/:id?"
             element={isLoggedIn ? <Chat /> : <Navigate to="/signin" />}
-          />
-          <Route
-            path="/submissions"
-            element={isLoggedIn ? <Submissions /> : <Navigate to="/signin" />}
           />
           <Route
             path="/problemverification"

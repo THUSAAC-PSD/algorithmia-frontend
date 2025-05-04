@@ -1,117 +1,150 @@
-import { CheckIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
-
 import { Problem } from './types';
 
 interface ProblemListProps {
   problems: Problem[];
   onProblemClick: (id: string) => void;
   onDeleteProblem: (id: string) => void;
-  onAddNewProblem: () => void;
   onSubmitProblem: (id: string) => void;
+  onAddNewProblem: () => void;
+  onNavigateToChat: (id: string) => void;
+  searchTerm: string;
+  sortColumn: keyof Problem | null;
+  sortDirection: 'asc' | 'desc';
+  onSort: (column: keyof Problem) => void;
+  renderSortIndicator: (column: keyof Problem) => React.ReactNode;
 }
 
-const ProblemList = ({
+const ProblemList: React.FC<ProblemListProps> = ({
   problems,
   onProblemClick,
   onDeleteProblem,
-  onAddNewProblem,
   onSubmitProblem,
-}: ProblemListProps) => {
-  return (
-    <>
-      <div className="mb-6 flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-white">Problem List</h1>
-        <button
-          type="button"
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
-          onClick={onAddNewProblem}
-        >
-          <PlusIcon className="w-5 h-5" />
-          <span>Add Problem</span>
-        </button>
-      </div>
+  onNavigateToChat,
+  sortColumn,
+  onSort,
+  renderSortIndicator,
+}) => {
+  // Define sortable columns
+  const sortableColumns: Array<{
+    key: keyof Problem;
+    label: string;
+    accessor: (problem: Problem) => string;
+  }> = [
+    { key: 'details', label: 'Title', accessor: (p) => p.details.title },
+    { key: 'created_at', label: 'Created At', accessor: (p) => p.created_at },
+    { key: 'updated_at', label: 'Updated At', accessor: (p) => p.updated_at },
+    {
+      key: 'is_submitted',
+      label: 'Status',
+      accessor: (p) => (p.is_submitted ? 'Submitted' : 'Draft'),
+    },
+  ];
 
-      <div className="rounded-lg shadow overflow-hidden shadow-slate-800">
+  return (
+    <div className="overflow-x-auto">
+      {problems.length === 0 ? (
+        <p className="text-slate-400">No problems found.</p>
+      ) : (
         <table className="min-w-full divide-y divide-slate-700">
           <thead className="bg-slate-800">
             <tr>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider"
-              >
-                Title
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider"
-              >
-                Last Modified
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-white uppercase tracking-wider"
-              >
-                Status
-              </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-right text-xs font-medium text-white uppercase tracking-wider"
-              >
+              {sortableColumns.map((column) => (
+                <th
+                  key={String(column.key)}
+                  className="px-6 py-3 text-left text-sm font-medium text-white"
+                >
+                  <button
+                    className="flex items-center cursor-pointer focus:outline-none group"
+                    onClick={() => onSort(column.key)}
+                    type="button"
+                  >
+                    <span>{column.label}</span>
+                    <span
+                      className={`ml-1 ${
+                        sortColumn === column.key
+                          ? 'text-indigo-400'
+                          : 'text-slate-500 group-hover:text-slate-300'
+                      }`}
+                    >
+                      {renderSortIndicator(column.key)}
+                      {sortColumn !== column.key && (
+                        <span className="text-xs">↕</span>
+                      )}
+                    </span>
+                  </button>
+                </th>
+              ))}
+              <th className="px-6 py-3 text-left text-sm font-medium text-white">
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="bg-slate-800 divide-y divide-slate-700">
+          <tbody className="divide-y divide-slate-700 bg-slate-800">
             {problems.map((problem) => (
-              <tr
-                key={problem.problem_draft_id}
-                className="hover:bg-slate-700 cursor-pointer"
-                onClick={() => onProblemClick(problem.problem_draft_id)}
-              >
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
+              <tr key={problem.problem_draft_id} className="hover:bg-slate-700">
+                <td
+                  className="px-6 py-4 text-sm text-white font-medium cursor-pointer"
+                  onClick={() => onProblemClick(problem.problem_draft_id)}
+                >
                   {problem.details.title}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
+                <td className="px-6 py-4 text-sm text-slate-400">
+                  {problem.created_at}
+                </td>
+                <td className="px-6 py-4 text-sm text-slate-400">
                   {problem.updated_at}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 font-medium">
-                  {problem.is_submitted ? 'Submitted' : 'Draft'}
+                <td className="px-6 py-4 text-sm">
+                  <span
+                    className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                      problem.is_submitted
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-yellow-100 text-yellow-800'
+                    }`}
+                  >
+                    {problem.is_submitted ? 'Submitted' : 'Draft'}
+                  </span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <td className="px-6 py-4 text-sm flex space-x-2">
                   {!problem.is_submitted && (
                     <button
+                      onClick={() => onSubmitProblem(problem.problem_draft_id)}
+                      className="px-3 py-1 bg-indigo-500 hover:bg-indigo-600 rounded text-white text-xs"
                       type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSubmitProblem(problem.problem_draft_id);
-                      }}
-                      className="text-green-600 hover:text-green-800 mr-2"
                     >
-                      <CheckIcon className="w-5 h-5" />
+                      Submit
                     </button>
                   )}
                   <button
+                    onClick={() => onProblemClick(problem.problem_draft_id)}
+                    className="px-3 py-1 bg-blue-500 hover:bg-blue-600 rounded text-white text-xs"
                     type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDeleteProblem(problem.problem_draft_id);
-                    }}
-                    className="text-red-600 hover:text-red-900"
                   >
-                    <TrashIcon className="w-5 h-5" />
+                    Modify
                   </button>
+                  <button
+                    onClick={() => onDeleteProblem(problem.problem_draft_id)}
+                    className="px-3 py-1 bg-red-500 hover:bg-red-600 rounded text-white text-xs"
+                    type="button"
+                  >
+                    Delete
+                  </button>
+                  {problem.is_submitted && (
+                    <button
+                      onClick={() => onNavigateToChat(problem.problem_draft_id)}
+                      className="px-3 py-1 bg-green-500 hover:bg-green-600 rounded text-white text-xs"
+                      type="button"
+                    >
+                      Chat
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-        {problems.length === 0 && (
-          <div className="text-center py-8 text-gray-400">
-            No problems yet, please add a new problem
-          </div>
-        )}
-      </div>
-    </>
+      )}
+    </div>
   );
 };
 

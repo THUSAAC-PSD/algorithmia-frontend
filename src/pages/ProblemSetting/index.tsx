@@ -1,3 +1,4 @@
+import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
 import { useState } from 'react';
 
 import ProblemDetail from './ProblemDetail';
@@ -7,6 +8,9 @@ import { Problem, ViewType } from './types';
 const ProblemSetting = () => {
   const [currentView, setCurrentView] = useState<ViewType>('list');
   const [currentProblem, setCurrentProblem] = useState<Problem | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortColumn, setSortColumn] = useState<keyof Problem | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   // Sample data
   const [problems, setProblems] = useState<Problem[]>([
@@ -30,6 +34,32 @@ const ProblemSetting = () => {
       updated_at: '2025-04-20',
     },
   ]);
+
+  // Filter problems based on search term
+  const filteredProblems = problems.filter((problem) =>
+    problem.details.title.toLowerCase().includes(searchTerm.toLowerCase()),
+  );
+
+  // Sort problems based on current sort column and direction
+  const handleSort = (column: keyof Problem) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  // Helper to render sort indicator
+  const renderSortIndicator = (column: keyof Problem) => {
+    if (sortColumn !== column) return null;
+
+    return sortDirection === 'asc' ? (
+      <ChevronUpIcon className="w-4 h-4 inline ml-1" />
+    ) : (
+      <ChevronDownIcon className="w-4 h-4 inline ml-1" />
+    );
+  };
 
   const handleDeleteProblem = (id: string) => {
     // TODO: Add confirmation dialog
@@ -68,16 +98,51 @@ const ProblemSetting = () => {
     setCurrentProblem(null);
   };
 
+  // Navigation to chat for a specific problem
+  const handleNavigateToChat = (id: string) => {
+    // TODO: Implement chat navigation
+    console.log(`Navigate to chat for problem ${id}`);
+  };
+
   return (
-    <div className="p-6 h-full bg-slate-900">
+    <div className="p-6 h-screen w-full flex flex-col overflow-auto bg-slate-900">
       {currentView === 'list' && (
-        <ProblemList
-          problems={problems}
-          onProblemClick={handleProblemClick}
-          onDeleteProblem={handleDeleteProblem}
-          onAddNewProblem={handleAddNewProblem}
-          onSubmitProblem={handleSubmitProblem}
-        />
+        <>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-medium text-white">
+              Problems & Submissions
+            </h2>
+            <div className="flex items-center space-x-4">
+              <input
+                type="text"
+                placeholder="Search problems..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+              />
+              <button
+                onClick={handleAddNewProblem}
+                className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg text-white font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                type="button"
+              >
+                Add New Problem
+              </button>
+            </div>
+          </div>
+          <ProblemList
+            problems={filteredProblems}
+            onProblemClick={handleProblemClick}
+            onDeleteProblem={handleDeleteProblem}
+            onAddNewProblem={handleAddNewProblem}
+            onSubmitProblem={handleSubmitProblem}
+            onNavigateToChat={handleNavigateToChat}
+            searchTerm={searchTerm}
+            sortColumn={sortColumn}
+            sortDirection={sortDirection}
+            onSort={handleSort}
+            renderSortIndicator={renderSortIndicator}
+          />
+        </>
       )}
 
       {currentView === 'detail' && (

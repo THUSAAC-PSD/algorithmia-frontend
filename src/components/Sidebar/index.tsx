@@ -26,11 +26,6 @@ const Sidebar = ({ userRole }: { userRole: string }) => {
       icon: <ChatBubbleLeftRightIcon className="w-5 h-5" />,
     },
     {
-      id: 'submissions',
-      label: 'Submissions',
-      icon: <ChatBubbleLeftRightIcon className="w-5 h-5" />,
-    },
-    {
       id: 'problem-verification',
       label: 'Problem Verification',
       icon: <DocumentCheckIcon className="w-5 h-5" />,
