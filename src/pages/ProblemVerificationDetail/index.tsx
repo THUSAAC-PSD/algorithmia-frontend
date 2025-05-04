@@ -10,15 +10,15 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 import Problem, { IProblem } from '../../components/Problem';
 
-type FeedbackStatus = 'approved' | 'rejected' | 'needs_changes' | null;
-
 const ProblemVerificationDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [problem, setProblem] = useState<IProblem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [feedbackText, setFeedbackText] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState<FeedbackStatus>(null);
+  const [selectedStatus, setSelectedStatus] = useState<
+    IProblem['status'] | null
+  >(null);
 
   useEffect(() => {
     const fetchProblem = async () => {
@@ -57,6 +57,8 @@ const ProblemVerificationDetail = () => {
           is_submitted: true,
           created_at: new Date('2025-04-22'),
           updated_at: new Date('2025-04-22'),
+          author: 'Bob Johnson',
+          status: 'pending',
         };
 
         // Simulate API delay
@@ -73,7 +75,7 @@ const ProblemVerificationDetail = () => {
     fetchProblem();
   }, [id]);
 
-  const handleStatusSelect = (status: FeedbackStatus) => {
+  const handleStatusSelect = (status: IProblem['status'] | null) => {
     setSelectedStatus(status);
   };
 

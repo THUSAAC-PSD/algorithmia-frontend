@@ -24,6 +24,8 @@ export interface IProblem {
   comments?: string[];
   created_at: Date;
   updated_at: Date;
+  author?: string;
+  status?: 'pending' | 'approved' | 'rejected' | 'needs_changes';
 }
 
 interface ProblemProps {
@@ -41,6 +43,38 @@ const Problem: React.FC<ProblemProps> = ({ problem, language = 'en' }) => {
     problem.problem_difficulty[0]?.display_name ||
     'Unknown';
 
+  // Get status badge for rendering
+  const getStatusBadge = (status: string | undefined) => {
+    switch (status) {
+      case 'pending':
+        return (
+          <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400">
+            Pending
+          </span>
+        );
+      case 'approved':
+        return (
+          <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400">
+            Approved
+          </span>
+        );
+      case 'rejected':
+        return (
+          <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400">
+            Rejected
+          </span>
+        );
+      case 'needs_changes':
+        return (
+          <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-500/20 text-orange-400">
+            Needs Changes
+          </span>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="bg-slate-800 rounded-lg border border-slate-700 p-6">
       <div className="mb-6">
@@ -53,6 +87,22 @@ const Problem: React.FC<ProblemProps> = ({ problem, language = 'en' }) => {
 
         <div className="text-xs text-slate-400 mt-2">
           ID: {problem.id} • Created: {problem.created_at.toLocaleDateString()}
+        </div>
+
+        <div className="flex flex-wrap items-center mt-3 gap-3">
+          {problem.author && (
+            <div className="flex items-center text-sm">
+              <span className="text-slate-400 mr-1">Author:</span>
+              <span className="text-slate-200">{problem.author}</span>
+            </div>
+          )}
+
+          {problem.status && (
+            <div className="flex items-center text-sm">
+              <span className="text-slate-400 mr-1">Status:</span>
+              {getStatusBadge(problem.status)}
+            </div>
+          )}
         </div>
       </div>
 

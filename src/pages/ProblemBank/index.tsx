@@ -44,6 +44,8 @@ const ProblemBank = () => {
       is_submitted: true,
       created_at: new Date('2025-04-22'),
       updated_at: new Date('2025-04-22'),
+      author: 'Bob Johnson',
+      status: 'pending',
     },
   ]);
 

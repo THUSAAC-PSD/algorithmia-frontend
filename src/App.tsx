@@ -7,6 +7,8 @@ import SignUp from './pages/Auth/SignUp';
 import Chat from './pages/Chat';
 import Home from './pages/Home';
 import ProblemBank from './pages/ProblemBank';
+import ProblemReview from './pages/ProblemReview';
+import ProblemReviewDetail from './pages/ProblemReviewDetail';
 import ProblemSetting from './pages/ProblemSetting';
 import ProblemVerification from './pages/ProblemVerification';
 import ProblemVerificationDetail from './pages/ProblemVerificationDetail';
@@ -45,16 +47,15 @@ function App() {
   }
 
   // Helper function to check if user has verifier role
-  const isVerifier = () =>
-    userRole === 'verifier' ||
-    userRole === 'admin' ||
-    userRole === 'super_admin';
+  const isVerifier = () => userRole === 'verifier' || isAdmin();
 
   // Helper function to check if user is admin
   const isAdmin = () => userRole === 'admin' || userRole === 'super_admin';
 
   // Helper function to check if user is super admin
   const isSuperAdmin = () => userRole === 'super_admin';
+
+  const isReviewer = () => userRole === 'reviewer' || isAdmin();
 
   return (
     <BrowserRouter>
@@ -114,6 +115,27 @@ function App() {
             element={
               isLoggedIn && isAdmin() ? (
                 <ProblemBank />
+              ) : (
+                <Navigate to="/signin" />
+              )
+            }
+          />
+
+          <Route
+            path="/problemreview"
+            element={
+              isLoggedIn && isReviewer() ? (
+                <ProblemReview />
+              ) : (
+                <Navigate to="/signin" />
+              )
+            }
+          />
+          <Route
+            path="/problemreview/:id"
+            element={
+              isLoggedIn && isReviewer() ? (
+                <ProblemReviewDetail />
               ) : (
                 <Navigate to="/signin" />
               )

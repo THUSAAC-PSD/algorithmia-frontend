@@ -3,6 +3,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   DocumentCheckIcon,
+  DocumentMagnifyingGlassIcon,
   DocumentTextIcon,
   ServerStackIcon,
   ShieldCheckIcon,
@@ -33,6 +34,15 @@ const Sidebar = ({ userRole }: { userRole: string }) => {
       id: 'problem-verification',
       label: 'Problem Verification',
       icon: <DocumentCheckIcon className="w-5 h-5" />,
+      show:
+        userRole === 'verifier' ||
+        userRole === 'admin' ||
+        userRole === 'super_admin',
+    },
+    {
+      id: 'problem-review',
+      label: 'Problem Review',
+      icon: <DocumentMagnifyingGlassIcon className="w-5 h-5" />,
       show:
         userRole === 'verifier' ||
         userRole === 'admin' ||

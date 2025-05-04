@@ -6,44 +6,76 @@ import {
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-interface Problem {
-  id: string;
-  title: string;
-  author: string;
-  submittedAt: string;
-  status: 'pending' | 'approved' | 'rejected' | 'needs_changes';
-  description?: string;
-}
+import { IProblem } from '../../components/Problem';
 
 const ProblemVerification = () => {
   const navigate = useNavigate();
-  const [problems, setProblems] = useState<Problem[]>([
+  const [problems, setProblems] = useState<IProblem[]>([
     {
       id: 'aaa',
-      title: 'Two Sum',
+      problem_difficulty: [{ language: 'en', display_name: 'Easy' }],
+      details: [
+        {
+          language: 'en',
+          title: 'Two Sum',
+          statement:
+            'Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.',
+          background: '',
+          input_format: '',
+          output_format: '',
+          note: '',
+        },
+      ],
+      examples: [],
+      is_submitted: true,
+      created_at: new Date('2025-05-01'),
+      updated_at: new Date('2025-05-01'),
       author: 'John Doe',
-      submittedAt: '2025-05-01',
       status: 'pending',
-      description:
-        'Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.',
     },
     {
       id: 'bbb',
-      title: 'Binary Tree Level Order Traversal',
+      problem_difficulty: [{ language: 'en', display_name: 'Medium' }],
+      details: [
+        {
+          language: 'en',
+          title: 'Binary Tree Level Order Traversal',
+          statement:
+            "Given the root of a binary tree, return the level order traversal of its nodes' values.",
+          background: '',
+          input_format: '',
+          output_format: '',
+          note: '',
+        },
+      ],
+      examples: [],
+      is_submitted: true,
+      created_at: new Date('2025-04-30'),
+      updated_at: new Date('2025-04-30'),
       author: 'Jane Smith',
-      submittedAt: '2025-04-30',
       status: 'needs_changes',
-      description:
-        "Given the root of a binary tree, return the level order traversal of its nodes' values.",
     },
     {
       id: 'ccc',
-      title: 'Longest Palindromic Substring',
+      problem_difficulty: [{ language: 'en', display_name: 'Medium' }],
+      details: [
+        {
+          language: 'en',
+          title: 'Longest Palindromic Substring',
+          statement:
+            'Given a string s, return the longest palindromic substring in s.',
+          background: '',
+          input_format: '',
+          output_format: '',
+          note: '',
+        },
+      ],
+      examples: [],
+      is_submitted: true,
+      created_at: new Date('2025-04-29'),
+      updated_at: new Date('2025-04-29'),
       author: 'Alex Johnson',
-      submittedAt: '2025-04-29',
       status: 'pending',
-      description:
-        'Given a string s, return the longest palindromic substring in s.',
     },
   ]);
 
@@ -54,16 +86,19 @@ const ProblemVerification = () => {
 
   const filteredAndSortedProblems = problems
     .filter((problem) => {
+      const title = problem.details[0]?.title || '';
       const matchesSearch =
-        problem.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        problem.author.toLowerCase().includes(searchTerm.toLowerCase());
+        title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (problem.author?.toLowerCase() || '').includes(
+          searchTerm.toLowerCase(),
+        );
       const matchesStatus =
         filterStatus === 'all' || problem.status === filterStatus;
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
-      const dateA = new Date(a.submittedAt);
-      const dateB = new Date(b.submittedAt);
+      const dateA = a.created_at;
+      const dateB = b.created_at;
       return sortOrder === 'newest'
         ? dateB.getTime() - dateA.getTime()
         : dateA.getTime() - dateB.getTime();
@@ -75,7 +110,7 @@ const ProblemVerification = () => {
 
   const handleStatusChange = (
     problemId: string,
-    newStatus: Problem['status'],
+    newStatus: IProblem['status'],
   ) => {
     setProblems(
       problems.map((problem) =>
@@ -85,7 +120,7 @@ const ProblemVerification = () => {
     // TODO: Send status change to server
   };
 
-  const getStatusBadge = (status: Problem['status']) => {
+  const getStatusBadge = (status: IProblem['status']) => {
     switch (status) {
       case 'pending':
         return (
@@ -189,17 +224,17 @@ const ProblemVerification = () => {
                     <div className="flex-1">
                       <div className="flex items-center">
                         <h3 className="text-lg font-medium text-white">
-                          {problem.title}
+                          {problem.details[0]?.title || 'Untitled Problem'}
                         </h3>
                         <span className="ml-3">
                           {getStatusBadge(problem.status)}
                         </span>
                       </div>
                       <div className="mt-2 text-sm text-slate-400 flex items-center space-x-4">
-                        <span>Author: {problem.author}</span>
+                        <span>Author: {problem.author || 'Unknown'}</span>
                         <span className="flex items-center">
                           <ClockIcon className="w-4 h-4 mr-1 inline" />
-                          Submitted on {problem.submittedAt}
+                          Submitted on {problem.created_at.toLocaleDateString()}
                         </span>
                       </div>
                     </div>
@@ -223,7 +258,8 @@ const ProblemVerification = () => {
                         Problem Description
                       </h4>
                       <div className="bg-slate-900 p-4 rounded-lg text-slate-300">
-                        {problem.description || 'No description provided.'}
+                        {problem.details[0]?.statement ||
+                          'No description provided.'}
                       </div>
                     </div>
 
