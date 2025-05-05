@@ -1,5 +1,30 @@
 import React from 'react';
+import { BlockMath, InlineMath } from 'react-katex';
+import ReactMarkdown from 'react-markdown';
+import rehypeKatex from 'rehype-katex';
+import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
 
+interface MarkdownProps {
+  children: string;
+}
+
+// eslint-disable-next-line
+const _mapProps = (props: MarkdownProps): any => ({
+  ...props,
+  remarkPlugins: [remarkMath, [remarkGfm, { singleTilde: false }]],
+  rehypePlugins: [rehypeKatex],
+  components: {
+    math: ({ value }: { value: string }) => <BlockMath>{value}</BlockMath>,
+    inlineMath: ({ value }: { value: string }) => (
+      <InlineMath>{value}</InlineMath>
+    ),
+  },
+});
+
+const Markdown: React.FC<MarkdownProps> = (props) => (
+  <ReactMarkdown {..._mapProps(props)} />
+);
 export interface IProblem {
   id: string;
   problem_difficulty: {
@@ -110,7 +135,7 @@ const Problem: React.FC<ProblemProps> = ({ problem, language = 'en' }) => {
         <div className="mb-6">
           <h3 className="text-lg font-semibold text-white mb-2">Background</h3>
           <div className="text-slate-300 prose prose-invert max-w-none">
-            {details.background}
+            <Markdown>{details.background}</Markdown>
           </div>
         </div>
       )}
@@ -121,7 +146,7 @@ const Problem: React.FC<ProblemProps> = ({ problem, language = 'en' }) => {
             Problem Statement
           </h3>
           <div className="text-slate-300 prose prose-invert max-w-none">
-            {details.statement}
+            <Markdown>{details.statement}</Markdown>
           </div>
         </div>
       )}
@@ -132,7 +157,7 @@ const Problem: React.FC<ProblemProps> = ({ problem, language = 'en' }) => {
             Input Format
           </h3>
           <div className="text-slate-300 prose prose-invert max-w-none">
-            {details.input_format}
+            <Markdown>{details.input_format}</Markdown>
           </div>
         </div>
       )}
@@ -143,7 +168,7 @@ const Problem: React.FC<ProblemProps> = ({ problem, language = 'en' }) => {
             Output Format
           </h3>
           <div className="text-slate-300 prose prose-invert max-w-none">
-            {details.output_format}
+            <Markdown>{details.output_format}</Markdown>
           </div>
         </div>
       )}
