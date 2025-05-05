@@ -149,7 +149,17 @@
       "updatedAt": "最后修改",
       "actions": "操作"
     },
-    "loading": "加载中..."
+    "loading": "加载中...",
+    "editUserModalTitle": "编辑用户",
+    "form":{
+      "username": "用户名",
+      "email": "电子邮件",
+      "role": "角色"
+    },
+    "saveChanges": "保存更改",
+    "confirmDeletion": "确认删除",
+    "deleteConfirmation": "您确定要删除此用户吗？",
+    "deleteUser": "删除用户"
   },
   "competitions": {
     "managementTitle": "比赛管理",
@@ -163,6 +173,7 @@
       "createdAt": "创建时间",
       "actions": "操作"
     },
+    "saveChanges": "保存更改",
     "newCompetition": "新建比赛",
     "loading": "加载中...",
     "createCompetition": "创建比赛",
