@@ -1,11 +1,13 @@
 import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import ProblemDetail from './ProblemDetail';
 import ProblemList from './ProblemList';
 import { Problem, ViewType } from './types';
 
 const ProblemSetting = () => {
+  const { t } = useTranslation();
   const [currentView, setCurrentView] = useState<ViewType>('list');
   const [currentProblem, setCurrentProblem] = useState<Problem | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -110,12 +112,12 @@ const ProblemSetting = () => {
         <div>
           <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/50">
             <h2 className="text-2xl font-medium text-white">
-              Problems & Submissions
+              {t('problemSetting.title')}
             </h2>
             <div className="flex space-x-4">
               <input
                 type="text"
-                placeholder="Search problems..."
+                placeholder={t('problemSetting.searchPlaceholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-300"
@@ -125,7 +127,7 @@ const ProblemSetting = () => {
                 className="px-3 py-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg text-white font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-300"
                 type="button"
               >
-                Add New Problem
+                {t('problemSetting.addNewProblem')}
               </button>
             </div>
           </div>

@@ -4,6 +4,7 @@ import {
   TrashIcon,
 } from '@heroicons/react/24/outline';
 import { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { EditorRef, MilkdownEditorWrapper } from '../../components/Editor';
 import { Problem } from './types';
@@ -15,6 +16,7 @@ interface ProblemFormProps {
 }
 
 const ProblemDetail = ({ problem, onSave, onCancel }: ProblemFormProps) => {
+  const { t } = useTranslation();
   const [title, setTitle] = useState<string>(problem?.details.title || '');
 
   const [language, setLanguage] = useState<string>(
@@ -192,7 +194,7 @@ const ProblemDetail = ({ problem, onSave, onCancel }: ProblemFormProps) => {
 
             {samples.map((sample, index) => (
               <div
-                key={index}
+                key={`${sample.input}-${sample.output}`}
                 className="border border-slate-600 rounded-md p-4 mb-4 bg-slate-800"
               >
                 <div className="flex justify-between items-center mb-3">
@@ -311,6 +313,19 @@ const ProblemDetail = ({ problem, onSave, onCancel }: ProblemFormProps) => {
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition disabled:opacity-50"
           >
             Save Problem
+          </button>
+          <button
+            type="submit"
+            className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg text-white"
+          >
+            {t('problemDetail.save')}
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-white ml-2"
+          >
+            {t('problemDetail.cancel')}
           </button>
         </div>
       </div>

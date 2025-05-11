@@ -9,25 +9,29 @@ import {
   ShieldCheckIcon,
 } from '@heroicons/react/24/outline';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { NavLink } from 'react-router-dom';
 
+import LanguageSwitcher from '../LanguageSwitcher';
+
 const Sidebar = ({ userRole }: { userRole: string }) => {
+  const { t } = useTranslation();
   const [collapsed, setCollapsed] = useState(false);
 
   const sidebarItems = [
     {
       id: 'problem-setting',
-      label: 'Problem Setting',
+      label: t('sidebar.problemSetting'),
       icon: <DocumentTextIcon className="w-5 h-5" />,
     },
     {
       id: 'chat',
-      label: 'Chat',
+      label: t('sidebar.chat'),
       icon: <ChatBubbleLeftRightIcon className="w-5 h-5" />,
     },
     {
       id: 'problem-verification',
-      label: 'Problem Verification',
+      label: t('sidebar.problemVerification'),
       icon: <DocumentCheckIcon className="w-5 h-5" />,
       show:
         userRole === 'verifier' ||
@@ -36,7 +40,7 @@ const Sidebar = ({ userRole }: { userRole: string }) => {
     },
     {
       id: 'problem-review',
-      label: 'Problem Review',
+      label: t('sidebar.problemReview'),
       icon: <DocumentMagnifyingGlassIcon className="w-5 h-5" />,
       show:
         userRole === 'verifier' ||
@@ -45,13 +49,13 @@ const Sidebar = ({ userRole }: { userRole: string }) => {
     },
     {
       id: 'problem-bank',
-      label: 'Problem Bank',
+      label: t('sidebar.problemBank'),
       icon: <ServerStackIcon className="w-5 h-5" />,
       show: userRole === 'admin' || userRole === 'super_admin',
     },
     {
       id: 'super-admin',
-      label: 'Super Admin',
+      label: t('sidebar.superAdmin'),
       icon: <ShieldCheckIcon className="w-5 h-5" />,
       show: userRole === 'super_admin',
     },
@@ -131,6 +135,13 @@ const Sidebar = ({ userRole }: { userRole: string }) => {
           })}
         </ul>
       </nav>
+
+      {/* Add Language Switcher above the user info section */}
+      <div
+        className={`px-4 py-3 border-t border-slate-700/50 ${collapsed ? 'flex justify-center' : ''}`}
+      >
+        <LanguageSwitcher collapsed={collapsed} />
+      </div>
 
       <div className="mt-auto p-4 border-t border-slate-700/50">
         <div

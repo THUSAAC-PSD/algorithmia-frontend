@@ -4,12 +4,15 @@ import {
   ClockIcon,
 } from '@heroicons/react/24/outline';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 import { IProblem } from '../../components/Problem';
 
 const ProblemVerification = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
+
   const [problems, setProblems] = useState<IProblem[]>([
     {
       id: 'aaa',
@@ -125,25 +128,25 @@ const ProblemVerification = () => {
       case 'pending':
         return (
           <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400">
-            Pending
+            {t('problemVerification.statuses.pending')}
           </span>
         );
       case 'approved':
         return (
           <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400">
-            Approved
+            {t('problemVerification.statuses.approved')}
           </span>
         );
       case 'rejected':
         return (
           <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400">
-            Rejected
+            {t('problemVerification.statuses.rejected')}
           </span>
         );
       case 'needs_changes':
         return (
           <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-500/20 text-orange-400">
-            Needs Changes
+            {t('problemVerification.statuses.needsChanges')}
           </span>
         );
       default:
@@ -170,32 +173,47 @@ const ProblemVerification = () => {
     <div className="flex flex-col h-full bg-slate-900 w-full">
       <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700/50">
         <h2 className="text-2xl font-medium text-white">
-          Problem Verification
+          {t('problemVerification.title')}
         </h2>
         <div className="flex space-x-4">
           <button
             onClick={toggleSortOrder}
             className="flex items-center px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none hover:bg-slate-600 transition-colors"
-            title={`Sort by ${sortOrder === 'newest' ? 'oldest' : 'newest'} first`}
+            title={t('problemVerification.sortBy', {
+              order:
+                sortOrder === 'newest'
+                  ? t('problemVerification.oldest')
+                  : t('problemVerification.newest'),
+            })}
             type="button"
           >
             <ArrowsUpDownIcon className="w-5 h-5 mr-2" />
-            {sortOrder === 'newest' ? 'Newest First' : 'Oldest First'}
+            {sortOrder === 'newest'
+              ? t('problemVerification.newestFirst')
+              : t('problemVerification.oldestFirst')}
           </button>
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
             className="px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
-            <option value="all">All Status</option>
-            <option value="pending">Pending</option>
-            <option value="approved">Approved</option>
-            <option value="rejected">Rejected</option>
-            <option value="needs_changes">Needs Changes</option>
+            <option value="all">{t('problemVerification.allStatus')}</option>
+            <option value="pending">
+              {t('problemVerification.statuses.pending')}
+            </option>
+            <option value="approved">
+              {t('problemVerification.statuses.approved')}
+            </option>
+            <option value="rejected">
+              {t('problemVerification.statuses.rejected')}
+            </option>
+            <option value="needs_changes">
+              {t('problemVerification.statuses.needsChanges')}
+            </option>
           </select>
           <input
             type="text"
-            placeholder="Search problems..."
+            placeholder={t('problemVerification.searchPlaceholder')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -206,9 +224,11 @@ const ProblemVerification = () => {
       <div className="flex-1 p-6 overflow-auto">
         {filteredAndSortedProblems.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-slate-400">
-            <p className="text-xl">No problems found for verification</p>
+            <p className="text-xl">
+              {t('problemVerification.noProblemsFound')}
+            </p>
             <p className="mt-2">
-              Try adjusting your filters or check back later
+              {t('problemVerification.tryAdjustingFilters')}
             </p>
           </div>
         ) : (
@@ -224,17 +244,22 @@ const ProblemVerification = () => {
                     <div className="flex-1">
                       <div className="flex items-center">
                         <h3 className="text-lg font-medium text-white">
-                          {problem.details[0]?.title || 'Untitled Problem'}
+                          {problem.details[0]?.title ||
+                            t('problemVerification.untitledProblem')}
                         </h3>
                         <span className="ml-3">
                           {getStatusBadge(problem.status)}
                         </span>
                       </div>
                       <div className="mt-2 text-sm text-slate-400 flex items-center space-x-4">
-                        <span>Author: {problem.author || 'Unknown'}</span>
+                        <span>
+                          {t('problemVerification.author')}:{' '}
+                          {problem.author || t('problemVerification.unknown')}
+                        </span>
                         <span className="flex items-center">
                           <ClockIcon className="w-4 h-4 mr-1 inline" />
-                          Submitted on {problem.created_at.toLocaleDateString()}
+                          {t('problemVerification.submittedOn')}{' '}
+                          {problem.created_at.toLocaleDateString()}
                         </span>
                       </div>
                     </div>
@@ -242,7 +267,7 @@ const ProblemVerification = () => {
                       <button
                         onClick={(e) => handleChatRedirect(problem.id, e)}
                         className="p-2 rounded-full hover:bg-indigo-500/10 text-indigo-400"
-                        title="Open Chat"
+                        title={t('problemVerification.openChat')}
                         type="button"
                       >
                         <ChatBubbleLeftRightIcon className="w-6 h-6" />
@@ -255,20 +280,22 @@ const ProblemVerification = () => {
                   <div className="border-t border-slate-700 p-4 bg-slate-800/50">
                     <div className="mb-4">
                       <h4 className="text-sm font-medium text-white mb-2">
-                        Problem Description
+                        {t('problemVerification.problemDescription')}
                       </h4>
                       <div className="bg-slate-900 p-4 rounded-lg text-slate-300">
                         {problem.details[0]?.statement ||
-                          'No description provided.'}
+                          t('problemVerification.noDescriptionProvided')}
                       </div>
                     </div>
 
                     <div className="mb-4">
                       <h4 className="text-sm font-medium text-white mb-2">
-                        Feedback
+                        {t('problemVerification.feedback')}
                       </h4>
                       <textarea
-                        placeholder="Enter your feedback or comments here..."
+                        placeholder={t(
+                          'problemVerification.feedbackPlaceholder',
+                        )}
                         className="w-full p-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                         rows={4}
                       ></textarea>
@@ -280,14 +307,14 @@ const ProblemVerification = () => {
                         type="button"
                         onClick={() => setActiveTabId(null)}
                       >
-                        Cancel
+                        {t('common.cancel')}
                       </button>
                       <button
                         className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
                         type="button"
                         onClick={submitFeedback}
                       >
-                        Submit Feedback
+                        {t('problemVerification.submitFeedback')}
                       </button>
                     </div>
                   </div>
