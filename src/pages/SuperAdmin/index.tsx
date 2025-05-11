@@ -31,7 +31,7 @@ const SuperAdmin = () => {
   ];
 
   return (
-    <div className="flex h-screen bg-slate-900 grow">
+    <div className="flex w-full h-screen bg-slate-900 grow">
       {/* Sidebar */}
       <div className="w-64 bg-slate-800 border-r border-slate-700">
         <div className="p-4 border-b border-slate-700">

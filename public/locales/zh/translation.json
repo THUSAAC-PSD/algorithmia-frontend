@@ -18,6 +18,10 @@
       "needs_changes": "需要修改"
     }
   },
+  "problemDetail": {
+    "save": "保存",
+    "cancel": "取消"
+  },
   "problemSetting": {
     "title": "题目和提交",
     "searchPlaceholder": "搜索题目...",
@@ -40,7 +44,10 @@
     "modify": "修改",
     "submitted": "已提交",
     "delete": "删除",
-    "chat": "交流"
+    "chat": "交流",
+    "draft": "草稿",
+    "submit": "提交",
+    "noProblem": "未找到题目"
   },
   "problemVerification": {
     "title": "验题",
@@ -93,7 +100,8 @@
     "noProblemsFound": "未找到题目",
     "tryAdjustingFilters": "请尝试调整筛选条件",
     "author": "作者",
-    "submittedOn": "提交时间"
+    "submittedOn": "提交时间",
+    "allStatus": "所有状态"
   },
   "problemBank": {
     "title": "题库",
@@ -113,7 +121,8 @@
     "exportSelected": "导出所选题目",
     "exportHeader": "导出题目",
     "exportFormat": "导出格式",
-    "export": "导出"
+    "export": "导出",
+    "problemDetails": "题目详情"
   },
   "superAdmin": {
     "title": "超级管理员",
@@ -194,6 +203,7 @@
     "deleteCompetition": "删除比赛"
   },
   "common": {
-    "cancel": "取消"
+    "cancel": "取消",
+    "close": "关闭"
   }
 }

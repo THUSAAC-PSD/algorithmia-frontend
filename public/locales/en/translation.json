@@ -18,6 +18,10 @@
       "needs_changes": "Needs Changes"
     }
   },
+  "problemDetail": {
+    "save": "Save",
+    "cancel": "Cancel"
+  },
   "problemSetting": {
     "title": "Problems & Submissions",
     "searchPlaceholder": "Search problems...",
@@ -40,7 +44,10 @@
     "modify": "Modify",
     "submitted": "Submitted",
     "delete": "Delete",
-    "chat": "Chat"
+    "chat": "Chat",
+    "draft": "Draft",
+    "submit": "Submit",
+    "noProblem": "No problem found"
   },
   "problemVerification": {
     "title": "Problem Verification",
@@ -93,7 +100,8 @@
     "noProblemsFound": "No problems found",
     "tryAdjustingFilters": "Try adjusting the filters",
     "author": "Author",
-    "submittedOn": "Submitted On"
+    "submittedOn": "Submitted On",
+    "allStatus": "All Statuses"
   },
   "problemBank": {
     "title": "Problem Bank",
@@ -113,7 +121,8 @@
     "exportSelected": "Export Selected",
     "exportHeader": "Export Problems",
     "exportFormat": "Export Format",
-    "export": "Export"
+    "export": "Export",
+    "problemDetails": "题目详情"
   },
   "superAdmin": {
     "title": "Super Admin",
@@ -194,6 +203,7 @@
     "deleteCompetition": "Delete Competition"
   },
   "common": {
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "close": "Close"
   }
 }

@@ -5,10 +5,11 @@ import {
   PencilIcon,
   XCircleIcon,
 } from '@heroicons/react/24/outline';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 
+import { EditorRef, MilkdownEditorWrapper } from '../../components/Editor';
 import Problem, { IProblem } from '../../components/Problem';
 
 const ProblemVerificationDetail = () => {
@@ -17,10 +18,10 @@ const ProblemVerificationDetail = () => {
   const navigate = useNavigate();
   const [problem, setProblem] = useState<IProblem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [feedbackText, setFeedbackText] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<
     IProblem['status'] | null
   >(null);
+  const editorRef = useRef<EditorRef>(null);
 
   useEffect(() => {
     const fetchProblem = async () => {
@@ -87,12 +88,15 @@ const ProblemVerificationDetail = () => {
       return;
     }
 
+    // Get content from the editor if it's being used
+    const editorContent = editorRef.current?.getContent() || '';
+
     try {
       // TODO: Replace with actual API call
       console.log('Submitting feedback:', {
         problemId: id,
         status: selectedStatus,
-        feedback: feedbackText,
+        feedback: editorContent,
       });
 
       // Simulate API call
@@ -133,7 +137,7 @@ const ProblemVerificationDetail = () => {
   }
 
   return (
-    <div className="flex-1 bg-slate-900 overflow-auto">
+    <div className="flex w-full bg-slate-900 overflow-auto">
       <div className="max-w-5xl mx-auto px-6 py-8">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center">
@@ -218,13 +222,17 @@ const ProblemVerificationDetail = () => {
             <h3 className="text-lg font-semibold text-white mb-3">
               {t('problemVerificationDetail.feedbackComments')}
             </h3>
-            <textarea
-              className="w-full p-4 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              rows={6}
-              placeholder={t('problemVerificationDetail.feedbackPlaceholder')}
-              value={feedbackText}
-              onChange={(e) => setFeedbackText(e.target.value)}
-            ></textarea>
+            <div className="bg-slate-700 border border-slate-600 rounded-lg overflow-hidden">
+              <div
+                style={{ minHeight: '200px' }}
+                className="prose prose-invert max-w-none"
+              >
+                <MilkdownEditorWrapper
+                  ref={editorRef}
+                  defaultValue={problem.details[0].statement}
+                />
+              </div>
+            </div>
           </div>
 
           <div className="flex justify-end">

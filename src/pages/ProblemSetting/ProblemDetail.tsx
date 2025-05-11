@@ -93,7 +93,7 @@ const ProblemDetail = ({ problem, onSave, onCancel }: ProblemFormProps) => {
   };
 
   return (
-    <>
+    <div className="p-6 flex flex-col w-full overflow-y-auto">
       <div className="mb-6 flex items-center">
         <button
           type="button"
@@ -194,7 +194,7 @@ const ProblemDetail = ({ problem, onSave, onCancel }: ProblemFormProps) => {
 
             {samples.map((sample, index) => (
               <div
-                key={index}
+                key={`${sample.input}-${sample.output}`}
                 className="border border-slate-600 rounded-md p-4 mb-4 bg-slate-800"
               >
                 <div className="flex justify-between items-center mb-3">
@@ -329,7 +329,7 @@ const ProblemDetail = ({ problem, onSave, onCancel }: ProblemFormProps) => {
           </button>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 
