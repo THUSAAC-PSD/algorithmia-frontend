@@ -118,7 +118,7 @@ const ProblemVerificationDetail = () => {
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-slate-900">
+      <div className="flex w-full items-center justify-center bg-slate-900">
         <div className="text-indigo-400 text-xl">
           {t('problemVerificationDetail.loading')}
         </div>
@@ -128,7 +128,7 @@ const ProblemVerificationDetail = () => {
 
   if (!problem) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-slate-900">
+      <div className="flex w-full items-center justify-center bg-slate-900">
         <div className="text-red-400 text-xl">
           {t('problemVerificationDetail.notFound')}
         </div>

@@ -108,7 +108,7 @@ const Problem: React.FC<ProblemProps> = ({ problem, language }) => {
   };
 
   return (
-    <div className="bg-slate-800 rounded-lg border border-slate-700 p-6">
+    <div className="bg-slate-800 rounded-lg p-6">
       <div className="mb-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-white">{details.title}</h1>
