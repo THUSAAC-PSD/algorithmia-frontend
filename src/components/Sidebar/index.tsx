@@ -71,7 +71,9 @@ const Sidebar = ({ userRole }: { userRole: string }) => {
         >
           {!collapsed && (
             <h2 className="text-xl font-medium text-white tracking-tight">
-              <span className="text-indigo-400">Algo</span>rithmia
+              <NavLink to="/">
+                <span className="text-indigo-400">Algo</span>rithmia
+              </NavLink>
             </h2>
           )}
           <button
