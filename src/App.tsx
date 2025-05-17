@@ -13,6 +13,7 @@ import ProblemSetting from './pages/ProblemSetting';
 import ProblemVerification from './pages/ProblemVerification';
 import ProblemVerificationDetail from './pages/ProblemVerificationDetail';
 import SuperAdmin from './pages/SuperAdmin';
+import CompetitionDetail from './pages/SuperAdmin/CompetitionDetail';
 import CompetitionManagement from './pages/SuperAdmin/Competitions';
 import PersonnelManagement from './pages/SuperAdmin/Personnel';
 
@@ -161,6 +162,7 @@ function App() {
 
             <Route path="personnel" element={<PersonnelManagement />} />
             <Route path="competitions" element={<CompetitionManagement />} />
+            <Route path="competitions/:id" element={<CompetitionDetail />} />
 
             <Route
               path="settings"

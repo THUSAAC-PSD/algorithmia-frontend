@@ -1,6 +1,7 @@
 import {
   CheckCircleIcon,
   ClockIcon,
+  DocumentTextIcon,
   ExclamationTriangleIcon,
   MagnifyingGlassIcon,
   PencilIcon,
@@ -10,6 +11,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 
 interface Competition {
   contest_id: string;
@@ -23,6 +25,7 @@ interface Competition {
 
 const CompetitionManagement = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [competitions, setCompetitions] = useState<Competition[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -102,8 +105,14 @@ const CompetitionManagement = () => {
     setShowCompetitionModal(true);
   };
 
+  // Navigate to competition detail page
+  const handleViewCompetition = (contestId: string) => {
+    navigate(`/superadmin/competitions/${contestId}`);
+  };
+
   // Show delete confirmation modal
-  const handleDeleteClick = (contestId: string) => {
+  const handleDeleteClick = (contestId: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent row click from triggering
     setCompetitionToDelete(contestId);
     setShowDeleteModal(true);
   };
@@ -257,7 +266,8 @@ const CompetitionManagement = () => {
               {filteredCompetitions.map((competition) => (
                 <tr
                   key={competition.contest_id}
-                  className="hover:bg-slate-700/30"
+                  className="hover:bg-slate-700/30 cursor-pointer"
+                  onClick={() => handleViewCompetition(competition.contest_id)}
                 >
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">
                     {competition.contest_id}
@@ -286,9 +296,26 @@ const CompetitionManagement = () => {
                     {formatDate(competition.created_at)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex justify-end space-x-2">
+                    <div
+                      className="flex justify-end space-x-2"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <button
-                        onClick={() => handleEditCompetition(competition)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleViewCompetition(competition.contest_id);
+                        }}
+                        className="p-1 rounded-full hover:bg-slate-600 text-slate-300"
+                        title={t('competitions.viewCompetition')}
+                        type="button"
+                      >
+                        <DocumentTextIcon className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditCompetition(competition);
+                        }}
                         className="p-1 rounded-full hover:bg-slate-600 text-slate-300"
                         title={t('competitions.editCompetition')}
                         type="button"
@@ -296,8 +323,8 @@ const CompetitionManagement = () => {
                         <PencilIcon className="h-5 w-5" />
                       </button>
                       <button
-                        onClick={() =>
-                          handleDeleteClick(competition.contest_id)
+                        onClick={(e) =>
+                          handleDeleteClick(competition.contest_id, e)
                         }
                         className="p-1 rounded-full hover:bg-slate-600 text-slate-300"
                         title={t('competitions.deleteCompetition')}
