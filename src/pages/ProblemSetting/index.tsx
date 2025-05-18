@@ -1,7 +1,8 @@
 import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { API_BASE_URL } from '../../config';
 import ProblemDetail from './ProblemDetail';
 import ProblemList from './ProblemList';
 import { Problem, ViewType } from './types';
@@ -13,29 +14,75 @@ const ProblemSetting = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortColumn, setSortColumn] = useState<keyof Problem | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [isLoading, setIsLoading] = useState(true);
 
   // Sample data
   const [problems, setProblems] = useState<Problem[]>([
-    {
-      problem_draft_id: '114514',
-      details: {
-        language: 'en-US',
-        title: 'A+B Problem',
-        background: 'A+B',
-        statement: 'B+A',
-        input_format: 'A',
-        output_format: 'B',
-        note: 'This is a note',
-      },
-      examples: [{ input: '1 2', output: '3' }],
-      problem_difficulty_id: 'easy',
-      is_submitted: true,
-      target_contest_id: 'contest_1',
-      comments: ['This is the first comment', 'This is the second comment'],
-      created_at: '2025-03-20',
-      updated_at: '2025-04-20',
-    },
+    // {
+    //   problem_draft_id: '114514',
+    //   details: {
+    //     language: 'en-US',
+    //     title: 'A+B Problem',
+    //     background: 'A+B',
+    //     statement: 'B+A',
+    //     input_format: 'A',
+    //     output_format: 'B',
+    //     note: 'This is a note',
+    //   },
+    //   examples: [{ input: '1 2', output: '3' }],
+    //   problem_difficulty_id: 'easy',
+    //   is_submitted: true,
+    //   target_contest_id: 'contest_1',
+    //   comments: ['This is the first comment', 'This is the second comment'],
+    //   created_at: '2025-03-20',
+    //   updated_at: '2025-04-20',
+    // },
   ]);
+
+  useEffect(() => {
+    const abortController = new AbortController();
+    let isMounted = true;
+
+    const fetchProblems = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch(`${API_BASE_URL}/problem-drafts`, {
+          method: 'GET',
+          mode: 'cors',
+          headers: {
+            'ngrok-skip-browser-warning': 'abc',
+          },
+          credentials: 'include',
+          signal: abortController.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            (await response.json()).message || 'Failed to load problems',
+          );
+        }
+
+        const data = await response.json();
+        if (isMounted) {
+          setProblems(
+            Array.isArray(data?.problem_drafts) ? data.problem_drafts : [],
+          );
+        }
+      } catch {
+        if (isMounted) {
+          setProblems([]);
+        }
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    fetchProblems();
+    return () => {
+      isMounted = false;
+      abortController.abort();
+    };
+  }, []);
 
   // Filter problems based on search term
   const filteredProblems = problems.filter((problem) =>
@@ -105,6 +152,16 @@ const ProblemSetting = () => {
     // TODO: Implement chat navigation
     console.log(`Navigate to chat for problem ${id}`);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col h-full bg-slate-900 w-full">
+        <div className="flex-1 p-6 overflow-auto flex justify-center items-center h-full">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-slate-900 w-full">

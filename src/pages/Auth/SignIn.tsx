@@ -2,9 +2,9 @@ import { EnvelopeIcon, LockClosedIcon } from '@heroicons/react/24/outline';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
+import { API_BASE_URL } from '../../config';
+
 const SignIn = () => {
-  const API_BASE_URL =
-    import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -21,6 +21,7 @@ const SignIn = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'abc',
         },
         body: JSON.stringify({
           username,

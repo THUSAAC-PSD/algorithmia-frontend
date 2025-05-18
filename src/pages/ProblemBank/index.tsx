@@ -5,50 +5,51 @@ import {
   MagnifyingGlassIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import Problem, { IProblem } from '../../components/Problem';
+import { API_BASE_URL } from '../../config';
 
 const ProblemBank = () => {
   const { t } = useTranslation();
   // TODO: Fetch problems from API
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   const [problems, setProblems] = useState<IProblem[]>([
-    {
-      id: '001',
-      problem_difficulty: [{ language: 'en', display_name: 'Medium' }],
-      details: [
-        {
-          language: 'en',
-          title: 'Two Sum',
-          background:
-            'This problem tests your ability to use hash maps efficiently.',
-          statement:
-            'Given an array of integers `nums` and an integer `target`, return indices of the two numbers such that they add up to `target`.\n\nYou may assume that each input would have exactly one solution, and you may not use the same element twice.',
-          input_format:
-            'First line contains an integer `n` (2 ≤ n ≤ 10^4) — the length of the array.\nSecond line contains `n` integers `nums[i]` (-10^9 ≤ nums[i] ≤ 10^9).\nThird line contains a single integer `target` (-10^9 ≤ target ≤ 10^9).',
-          output_format:
-            'Return the indices of the two numbers that add up to the target, as an array of two integers, in increasing order.',
-          note: 'The solution must run in O(n) time complexity.',
-        },
-      ],
-      examples: [
-        {
-          input: '4\n2 7 11 15\n9',
-          output: '0 1',
-        },
-        {
-          input: '3\n3 2 4\n6',
-          output: '1 2',
-        },
-      ],
-      is_submitted: true,
-      created_at: new Date('2025-04-22'),
-      updated_at: new Date('2025-04-22'),
-      author: 'Bob Johnson',
-      status: 'pending',
-    },
+    // {
+    //   id: '001',
+    //   problem_difficulty: [{ language: 'en', display_name: 'Medium' }],
+    //   details: [
+    //     {
+    //       language: 'en',
+    //       title: 'Two Sum',
+    //       background:
+    //         'This problem tests your ability to use hash maps efficiently.',
+    //       statement:
+    //         'Given an array of integers `nums` and an integer `target`, return indices of the two numbers such that they add up to `target`.\n\nYou may assume that each input would have exactly one solution, and you may not use the same element twice.',
+    //       input_format:
+    //         'First line contains an integer `n` (2 ≤ n ≤ 10^4) — the length of the array.\nSecond line contains `n` integers `nums[i]` (-10^9 ≤ nums[i] ≤ 10^9).\nThird line contains a single integer `target` (-10^9 ≤ target ≤ 10^9).',
+    //       output_format:
+    //         'Return the indices of the two numbers that add up to the target, as an array of two integers, in increasing order.',
+    //       note: 'The solution must run in O(n) time complexity.',
+    //     },
+    //   ],
+    //   examples: [
+    //     {
+    //       input: '4\n2 7 11 15\n9',
+    //       output: '0 1',
+    //     },
+    //     {
+    //       input: '3\n3 2 4\n6',
+    //       output: '1 2',
+    //     },
+    //   ],
+    //   is_submitted: true,
+    //   created_at: new Date('2025-04-22'),
+    //   updated_at: new Date('2025-04-22'),
+    //   author: 'Bob Johnson',
+    //   status: 'pending',
+    // },
   ]);
 
   const [selectedProblemIds, setSelectedProblemIds] = useState<Set<string>>(
@@ -59,6 +60,50 @@ const ProblemBank = () => {
   const [selectedProblem, setSelectedProblem] = useState<IProblem | null>(null);
   const [showExportOptions, setShowExportOptions] = useState(false);
   const [exportFormat, setExportFormat] = useState('json');
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const abortController = new AbortController();
+    let isMounted = true;
+
+    const fetchProblems = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch(`${API_BASE_URL}/problems`, {
+          method: 'GET',
+          mode: 'cors',
+          headers: {
+            'ngrok-skip-browser-warning': 'abc',
+          },
+          credentials: 'include',
+          signal: abortController.signal,
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            (await response.json()).message || 'Failed to load problems',
+          );
+        }
+
+        const data = await response.json();
+        if (isMounted) {
+          setProblems(Array.isArray(data?.problems) ? data.problems : []);
+        }
+      } catch {
+        if (isMounted) {
+          setProblems([]);
+        }
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    fetchProblems();
+    return () => {
+      isMounted = false;
+      abortController.abort();
+    };
+  }, []);
 
   const toggleSortOrder = () => {
     setSortOrder(sortOrder === 'newest' ? 'oldest' : 'newest');
@@ -156,6 +201,16 @@ const ProblemBank = () => {
 
     setShowExportOptions(false);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col h-full bg-slate-900 w-full">
+        <div className="flex-1 p-6 overflow-auto flex justify-center items-center h-full">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-slate-900 w-full">
