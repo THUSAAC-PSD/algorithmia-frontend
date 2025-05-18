@@ -71,9 +71,10 @@ function AppContent() {
     const checkAuthStatus = () => {
       // TODO: Replace with actual API call to check auth status
       const loggedIn = localStorage.getItem('isLoggedIn') === 'true';
+      const userRole = localStorage.getItem('userRole') || 'user';
       setIsLoggedIn(loggedIn);
 
-      setUserRole(loggedIn ? 'super_admin' : ''); // TODO: Replace with actual user role from API/localStorage
+      setUserRole(loggedIn ? userRole : '');
 
       setIsLoading(false);
     };

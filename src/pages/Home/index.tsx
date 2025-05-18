@@ -70,10 +70,8 @@ const Home = () => {
   useEffect(() => {
     // TODO: Replace with actual API call to get user role
     const loggedIn = localStorage.getItem('isLoggedIn') === 'true';
-    const role = loggedIn
-      ? localStorage.getItem('userRole') || 'super_admin'
-      : '';
-    setUserRole(role || 'super_admin');
+    const role = loggedIn ? localStorage.getItem('userRole') : '';
+    setUserRole(role || 'user');
   }, []);
   const isVerifier = () => userRole === 'verifier' || isAdmin();
   const isAdmin = () => userRole === 'admin' || userRole === 'super_admin';

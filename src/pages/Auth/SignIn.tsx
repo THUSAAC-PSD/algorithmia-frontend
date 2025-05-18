@@ -3,7 +3,9 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 const SignIn = () => {
-  const [email, setEmail] = useState('');
+  const API_BASE_URL =
+    import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -15,14 +17,33 @@ const SignIn = () => {
     setIsLoading(true);
 
     try {
-      // Mock authentication - replace with actual API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username,
+          password,
+        }),
+      });
 
-      // Simulate successful login
+      if (!response.ok) {
+        localStorage.removeItem('isLoggedIn');
+        localStorage.removeItem('userRole');
+        throw new Error('Invalid username or password');
+      }
+      // TODO: Handle different role
+      localStorage.setItem('userRole', 'user');
       localStorage.setItem('isLoggedIn', 'true');
+
       navigate('/');
-    } catch {
-      setError('Invalid email or password. Please try again.');
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : 'Invalid username or password. Please try again.',
+      );
     } finally {
       setIsLoading(false);
     }
@@ -49,23 +70,23 @@ const SignIn = () => {
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
             <div>
-              <label htmlFor="email" className="sr-only">
-                Email address
+              <label htmlFor="username" className="sr-only">
+                Username
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <EnvelopeIcon className="h-5 w-5 text-slate-400" />
                 </div>
                 <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
+                  id="username"
+                  name="username"
+                  type="text"
+                  autoComplete="username"
                   required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   className="appearance-none relative block w-full pl-10 pr-3 py-3 bg-slate-700 border border-slate-600 placeholder-slate-400 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:z-10"
-                  placeholder="Email address"
+                  placeholder="Username"
                 />
               </div>
             </div>
