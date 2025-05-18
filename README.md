@@ -1,62 +1,83 @@
-# React + TypeScript + Vite
+# Algorithmia Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and
-some ESLint rules.
+The frontend of Algorithmia, a platform for problem proposal and collection.
 
-Currently, two official plugins are available:
+## Project Structure
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md)
-  uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc)
-  uses [SWC](https://swc.rs/) for Fast Refresh
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the
-configuration to enable type-aware lint rules:
-
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-});
+```
+algorithmia-frontend/
+├── public/                    # Static assets
+│   ├── locales/               # Translation files
+│   │   ├── en/                # English translations
+│   │   └── zh/                # Chinese translations
+├── src/
+│   ├── assets/                # Project assets (images, icons)
+│   ├── components/            # Reusable UI components
+│   │   ├── Editor.tsx         # Markdown editor component
+│   │   ├── LanguageSwitcher.tsx # Language selector
+│   │   ├── Problem/           # Problem-related components
+│   │   └── Sidebar/           # Navigation sidebar
+│   ├── i18n/                  # Internationalization setup
+│   ├── pages/                 # Application views/pages
+│   │   ├── Auth/              # Authentication pages
+│   │   ├── Chat/              # Discussion feature
+│   │   ├── Home/              # Dashboard
+│   │   ├── LandingPage/       # Public landing page
+│   │   ├── ProblemBank/       # Problem database management
+│   │   ├── ProblemReview/     # Problem review functionality
+│   │   ├── ProblemSetting/    # Problem creation features
+│   │   ├── ProblemVerification/ # Problem verification workflow
+│   │   └── SuperAdmin/        # Admin dashboard and tools
+│   ├── styles/                # Global styles
+│   ├── App.tsx                # Root application component
+│   ├── index.css              # Global CSS
+│   └── main.tsx               # Application entry point
 ```
 
-You can also install
-[eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x)
-and
-[eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom)
-for React-specific lint rules:
+## Architecture
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x';
-import reactDom from 'eslint-plugin-react-dom';
+### Role-Based Access Control
 
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-});
+The application implements a comprehensive role-based access control system with
+the following user roles:
+
+- **Super Admin**: Full system access, including admin dashboard and competition
+  management
+- **Admin**: Administrative privileges for problem bank management
+- **Verifier**: Access to problem verification tools
+- **Reviewer**: Access to detailed problem review features
+- **User**: Base level access to core features
+
+### Features by User Role
+
+- **All Users**: Problem setting, discussions
+- **Verifiers**: Problem verification
+- **Reviewers**: Detailed problem review
+- **Admins**: Problem bank management
+- **Super Admins**: System administration, competition management
+
+### UI/UX Design
+
+- Modern, dark-themed interface using Tailwind CSS, Flowbite styled components
+- Role-specific feature visibility
+
+### Markdown and Math Support
+
+- Rich text editing with Milkdown editor
+- Math formula rendering with KaTeX integration
+
+## Development Workflow
+
+### Installation
+
+```sh
+# Install dependencies
+pnpm install
+```
+
+### Development
+
+```sh
+# Start development server
+pnpm dev
 ```
