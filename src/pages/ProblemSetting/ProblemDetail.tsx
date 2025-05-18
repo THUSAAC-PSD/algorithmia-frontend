@@ -300,23 +300,10 @@ const ProblemDetail = ({ problem, onSave, onCancel }: ProblemFormProps) => {
 
         <div className="flex justify-end space-x-3 mt-6">
           <button
-            type="button"
-            onClick={onCancel}
-            className="px-4 py-2 border border-slate-600 rounded-md text-sm font-medium text-white hover:bg-slate-700"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
+            type="submit"
             onClick={handleSubmit}
             disabled={submitDisabled}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition disabled:opacity-50"
-          >
-            Save Problem
-          </button>
-          <button
-            type="submit"
-            className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg text-white"
+            className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg text-white disabled:opacity-50"
           >
             {t('problemDetail.save')}
           </button>
