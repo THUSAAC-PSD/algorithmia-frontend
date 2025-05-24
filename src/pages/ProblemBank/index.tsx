@@ -9,49 +9,11 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import Problem, { IProblem } from '../../components/Problem';
-import { API_BASE_URL } from '../../config';
 
 const ProblemBank = () => {
   const { t } = useTranslation();
-  // TODO: Fetch problems from API
 
-  const [problems, setProblems] = useState<IProblem[]>([
-    // {
-    //   id: '001',
-    //   problem_difficulty: [{ language: 'en', display_name: 'Medium' }],
-    //   details: [
-    //     {
-    //       language: 'en',
-    //       title: 'Two Sum',
-    //       background:
-    //         'This problem tests your ability to use hash maps efficiently.',
-    //       statement:
-    //         'Given an array of integers `nums` and an integer `target`, return indices of the two numbers such that they add up to `target`.\n\nYou may assume that each input would have exactly one solution, and you may not use the same element twice.',
-    //       input_format:
-    //         'First line contains an integer `n` (2 ≤ n ≤ 10^4) — the length of the array.\nSecond line contains `n` integers `nums[i]` (-10^9 ≤ nums[i] ≤ 10^9).\nThird line contains a single integer `target` (-10^9 ≤ target ≤ 10^9).',
-    //       output_format:
-    //         'Return the indices of the two numbers that add up to the target, as an array of two integers, in increasing order.',
-    //       note: 'The solution must run in O(n) time complexity.',
-    //     },
-    //   ],
-    //   examples: [
-    //     {
-    //       input: '4\n2 7 11 15\n9',
-    //       output: '0 1',
-    //     },
-    //     {
-    //       input: '3\n3 2 4\n6',
-    //       output: '1 2',
-    //     },
-    //   ],
-    //   is_submitted: true,
-    //   created_at: new Date('2025-04-22'),
-    //   updated_at: new Date('2025-04-22'),
-    //   author: 'Bob Johnson',
-    //   status: 'pending',
-    // },
-  ]);
-
+  const [problems, setProblems] = useState<IProblem[]>([]);
   const [selectedProblemIds, setSelectedProblemIds] = useState<Set<string>>(
     new Set(),
   );
@@ -69,7 +31,7 @@ const ProblemBank = () => {
     const fetchProblems = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(`${API_BASE_URL}/problems`, {
+        const response = await fetch(`/api/problems`, {
           method: 'GET',
           mode: 'cors',
           headers: {
@@ -87,9 +49,70 @@ const ProblemBank = () => {
 
         const data = await response.json();
         if (isMounted) {
-          setProblems(Array.isArray(data?.problems) ? data.problems : []);
+          const transformedProblems = Array.isArray(data?.problems)
+            ? data.problems.map(
+                (problem: {
+                  problem_id: string;
+                  title: Array<{ language: string; title: string }>;
+                  status: string;
+                  creator?: { user_id: string; username: string };
+                  problem_difficulty: {
+                    problem_difficulty_id: string;
+                    display_names: Array<{
+                      language: string;
+                      display_name: string;
+                    }>;
+                  };
+                  created_at: string;
+                  updated_at: string;
+                }) => {
+                  // Extract title from the array of language-title objects
+                  const titleObj =
+                    Array.isArray(problem.title) && problem.title.length > 0
+                      ? problem.title.find((t) => t.language === 'en-US') ||
+                        problem.title[0]
+                      : { language: 'en-US', title: 'Untitled Problem' };
+
+                  // Transform problem_difficulty to match IProblem format
+                  const difficultyDisplayNames =
+                    problem.problem_difficulty?.display_names || [];
+                  const mappedDifficulty = difficultyDisplayNames.map((d) => ({
+                    language: d.language,
+                    display_name: d.display_name,
+                  }));
+
+                  return {
+                    id: problem.problem_id,
+                    problem_difficulty:
+                      mappedDifficulty.length > 0
+                        ? mappedDifficulty
+                        : [{ language: 'en-US', display_name: 'Unknown' }],
+                    details: [
+                      {
+                        // Create placeholder details with just the title
+                        language: titleObj.language,
+                        title: titleObj.title,
+                        background: '',
+                        statement: '',
+                        input_format: '',
+                        output_format: '',
+                        note: '',
+                      },
+                    ],
+                    examples: [],
+                    is_submitted: true,
+                    created_at: new Date(problem.created_at || Date.now()),
+                    updated_at: new Date(problem.updated_at || Date.now()),
+                    author: problem.creator?.username || 'Unknown',
+                    status: problem.status || 'pending',
+                  };
+                },
+              )
+            : [];
+          setProblems(transformedProblems);
         }
-      } catch {
+      } catch (error) {
+        console.error('Error fetching problems:', error);
         if (isMounted) {
           setProblems([]);
         }
@@ -104,6 +127,94 @@ const ProblemBank = () => {
       abortController.abort();
     };
   }, []);
+
+  // Fetch full problem details when a problem is clicked
+  const handleProblemClick = async (problem: IProblem) => {
+    setSelectedProblem(problem); // First set with placeholder data for immediate display
+
+    try {
+      const response = await fetch(`/api/problems/${problem.id}`, {
+        method: 'GET',
+        mode: 'cors',
+        headers: {
+          'ngrok-skip-browser-warning': 'abc',
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          (await response.json()).message || 'Failed to load problem details',
+        );
+      }
+
+      const data = await response.json();
+
+      // Extract details from the latest version
+      const latestVersion = data.problem.versions[0]; // Assuming versions are sorted with newest first
+
+      // Get the English details or fallback to first available
+      const detailsObj =
+        Array.isArray(latestVersion.details) && latestVersion.details.length > 0
+          ? latestVersion.details.find(
+              (d: { language: string }) => d.language === 'en-US',
+            ) || latestVersion.details[0]
+          : {
+              language: 'en-US',
+              title: '',
+              background: '',
+              statement: '',
+              input_format: '',
+              output_format: '',
+              note: '',
+            };
+
+      // Transform problem_difficulty to match IProblem format
+      const difficultyObj = latestVersion.problem_difficulty;
+      const mappedDifficulty = difficultyObj?.display_names?.map(
+        (d: { language: string; display_name: string }) => ({
+          language: d.language,
+          display_name: d.display_name,
+        }),
+      ) || [{ language: 'en-US', display_name: 'Unknown' }];
+
+      // Convert to our internal IProblem format with full details
+      const updatedProblem: IProblem = {
+        id: data.problem.problem_id,
+        problem_difficulty: mappedDifficulty,
+        details: [
+          {
+            language: detailsObj.language,
+            title: detailsObj.title,
+            background: detailsObj.background || '',
+            statement: detailsObj.statement || '',
+            input_format: detailsObj.input_format || '',
+            output_format: detailsObj.output_format || '',
+            note: detailsObj.note || '',
+          },
+        ],
+        examples: Array.isArray(latestVersion.examples)
+          ? latestVersion.examples
+          : [],
+        is_submitted: true,
+        created_at: new Date(data.problem.created_at || Date.now()),
+        updated_at: new Date(data.problem.updated_at || Date.now()),
+        author: data.problem.creator?.username || 'Unknown',
+        status: data.problem.status || 'pending',
+      };
+
+      // Update the selected problem with full details
+      setSelectedProblem(updatedProblem);
+
+      // Also update the problem in the problems list with the full details
+      setProblems(
+        problems.map((p) => (p.id === updatedProblem.id ? updatedProblem : p)),
+      );
+    } catch (error) {
+      console.error('Error fetching problem details:', error);
+      // Keep the placeholder data if detail fetch fails
+    }
+  };
 
   const toggleSortOrder = () => {
     setSortOrder(sortOrder === 'newest' ? 'oldest' : 'newest');
@@ -173,33 +284,123 @@ const ProblemBank = () => {
     setSelectedProblemIds(new Set());
   };
 
-  const handleExport = () => {
-    const problemsToExport = problems.filter((p) =>
+  const handleExport = async () => {
+    const selectedProblems = problems.filter((p) =>
       selectedProblemIds.has(p.id),
     );
-
-    if (problemsToExport.length === 0) {
+    if (selectedProblems.length === 0) {
       alert(t('problemBank.alertSelectAtLeastOne'));
       return;
     }
 
-    let dataToExport;
+    try {
+      // Fetch detailed data for each selected problem
+      const detailedProblems = await Promise.all(
+        selectedProblems.map(async (problem) => {
+          try {
+            const response = await fetch(`/api/problems/${problem.id}`, {
+              method: 'GET',
+              mode: 'cors',
+              headers: {
+                'ngrok-skip-browser-warning': 'abc',
+              },
+              credentials: 'include',
+            });
 
-    if (exportFormat === 'json') {
-      dataToExport = JSON.stringify(problemsToExport, null, 2);
+            if (!response.ok) {
+              throw new Error(
+                (await response.json()).message ||
+                  'Failed to load problem details',
+              );
+            }
+
+            const data = await response.json();
+            const latestVersion = data.problem.versions[0]; // Assuming newest first
+
+            // Get the English details or fallback to first available
+            const detailsObj =
+              Array.isArray(latestVersion.details) &&
+              latestVersion.details.length > 0
+                ? latestVersion.details.find(
+                    (d: { language: string }) => d.language === 'en-US',
+                  ) || latestVersion.details[0]
+                : {
+                    language: 'en-US',
+                    title: '',
+                    background: '',
+                    statement: '',
+                    input_format: '',
+                    output_format: '',
+                    note: '',
+                  };
+
+            // Transform problem_difficulty to match IProblem format
+            const difficultyObj = latestVersion.problem_difficulty;
+            const mappedDifficulty = difficultyObj?.display_names?.map(
+              (d: { language: string; display_name: string }) => ({
+                language: d.language,
+                display_name: d.display_name,
+              }),
+            ) || [{ language: 'en-US', display_name: 'Unknown' }];
+
+            // Convert to our internal IProblem format with full details
+            const updatedProblem: IProblem = {
+              id: data.problem.problem_id,
+              problem_difficulty: mappedDifficulty,
+              details: [
+                {
+                  language: detailsObj.language,
+                  title: detailsObj.title,
+                  background: detailsObj.background || '',
+                  statement: detailsObj.statement || '',
+                  input_format: detailsObj.input_format || '',
+                  output_format: detailsObj.output_format || '',
+                  note: detailsObj.note || '',
+                },
+              ],
+              examples: Array.isArray(latestVersion.examples)
+                ? latestVersion.examples
+                : [],
+              is_submitted: true,
+              created_at: new Date(data.problem.created_at || Date.now()),
+              updated_at: new Date(data.problem.updated_at || Date.now()),
+              author: data.problem.creator?.username || 'Unknown',
+              status: data.problem.status || 'pending',
+            };
+            return updatedProblem;
+          } catch (error) {
+            console.error(
+              `Error fetching details for problem ${problem.id}:`,
+              error,
+            );
+            // Return the original problem if detailed fetch fails
+            return problem;
+          }
+        }),
+      );
+
+      // Prepare export data
+      let dataToExport;
+      if (exportFormat === 'json') {
+        dataToExport = JSON.stringify(detailedProblems, null, 2);
+      }
+
+      // Create and trigger the export file
+      const blob = new Blob([dataToExport || ''], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `problem-bank-export.${exportFormat}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      setShowExportOptions(false);
+    } catch (error) {
+      console.error('Error exporting detailed problems:', error);
+      alert(t('problemBank.exportError') || 'Failed to export problems');
     }
-
-    const blob = new Blob([dataToExport || ''], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `problem-bank-export.${exportFormat}`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-
-    setShowExportOptions(false);
   };
 
   if (isLoading) {
@@ -296,7 +497,7 @@ const ProblemBank = () => {
                     ? 'border border-indigo-500'
                     : ''
                 }`}
-                onClick={() => setSelectedProblem(problem)}
+                onClick={() => handleProblemClick(problem)}
               >
                 <div className="flex justify-between items-start">
                   <div className="flex-1">

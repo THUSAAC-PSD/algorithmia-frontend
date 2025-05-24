@@ -11,105 +11,123 @@ const ProblemReview = () => {
   const [problems, setProblems] = useState<IProblem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<string>('pending');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
 
   useEffect(() => {
-    // TODO: Replace with actual API call
-    setTimeout(() => {
-      const mockProblems: IProblem[] = [
-        {
-          id: 'prob-1',
-          details: [
-            {
-              language: 'en',
-              title: 'Binary Tree Maximum Path Sum',
-              background: '',
-              statement:
-                'A path in a binary tree is a sequence of nodes where each pair of adjacent nodes in the sequence has an edge connecting them. Find the maximum path sum.',
-              input_format: '',
-              output_format: '',
-              note: '',
-            },
-          ],
-          problem_difficulty: [{ language: 'en', display_name: 'Hard' }],
-          examples: [],
-          is_submitted: true,
-          created_at: new Date('2025-04-28'),
-          updated_at: new Date('2025-04-28'),
-          author: 'John Doe',
-          status: 'pending',
-        },
-        {
-          id: 'prob-2',
-          details: [
-            {
-              language: 'en',
-              title: 'Merge K Sorted Lists',
-              background: '',
-              statement:
-                'You are given an array of k linked-lists lists, each linked-list is sorted in ascending order. Merge all the linked-lists into one sorted linked-list.',
-              input_format: '',
-              output_format: '',
-              note: '',
-            },
-          ],
-          problem_difficulty: [{ language: 'en', display_name: 'Medium' }],
-          examples: [],
-          is_submitted: true,
-          created_at: new Date('2025-04-30'),
-          updated_at: new Date('2025-04-30'),
-          author: 'Alice Smith',
-          status: 'pending',
-        },
-        {
-          id: 'prob-3',
-          details: [
-            {
-              language: 'en',
-              title: 'Word Search II',
-              background: '',
-              statement:
-                'Given an m x n board of characters and a list of strings words, return all words on the board.',
-              input_format: '',
-              output_format: '',
-              note: '',
-            },
-          ],
-          problem_difficulty: [{ language: 'en', display_name: 'Hard' }],
-          examples: [],
-          is_submitted: true,
-          created_at: new Date('2025-05-01'),
-          updated_at: new Date('2025-05-01'),
-          author: 'Bob Johnson',
-          status: 'pending',
-        },
-        {
-          id: 'prob-4',
-          details: [
-            {
-              language: 'en',
-              title: 'Median of Two Sorted Arrays',
-              background: '',
-              statement:
-                'Given two sorted arrays nums1 and nums2 of size m and n respectively, return the median of the two sorted arrays.',
-              input_format: '',
-              output_format: '',
-              note: '',
-            },
-          ],
-          problem_difficulty: [{ language: 'en', display_name: 'Hard' }],
-          examples: [],
-          is_submitted: true,
-          created_at: new Date('2025-04-29'),
-          updated_at: new Date('2025-04-29'),
-          author: 'Carol Williams',
-          status: 'pending',
-        },
-      ];
-      setProblems(mockProblems);
-      setLoading(false);
-    }, 800);
+    let isMounted = true;
+
+    const fetchProblems = async () => {
+      setLoading(true);
+      try {
+        // Fetch problems from the API
+        const response = await fetch('/api/problems', {
+          method: 'GET',
+          mode: 'cors',
+          headers: {
+            'ngrok-skip-browser-warning': 'abc',
+          },
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            (await response.json()).message ||
+              'Failed to load problems for review',
+          );
+        }
+
+        const data = await response.json();
+
+        if (isMounted) {
+          // Transform published problems
+          const transformedProblems = Array.isArray(data?.problems)
+            ? data.problems.map(
+                (problem: {
+                  problem_id: string;
+                  title: Array<{ language: string; title: string }>;
+                  status: string;
+                  creator?: { user_id: string; username: string };
+                  reviewer?: { user_id: string; username: string };
+                  testers?: Array<{ user_id: string; username: string }>;
+                  target_contest: null | unknown;
+                  assigned_contest: null | unknown;
+                  problem_difficulty: {
+                    problem_difficulty_id: string;
+                    display_names: Array<{
+                      language: string;
+                      display_name: string;
+                    }>;
+                  };
+                  created_at: string;
+                  updated_at: string;
+                }) => {
+                  // Extract title from the array of language-title objects
+                  const titleObj =
+                    Array.isArray(problem.title) && problem.title.length > 0
+                      ? problem.title.find((t) => t.language === 'en-US') ||
+                        problem.title[0]
+                      : { language: 'en-US', title: 'Untitled Problem' };
+
+                  // Transform problem_difficulty to match IProblem format
+                  const difficultyDisplayNames =
+                    problem.problem_difficulty?.display_names || [];
+                  const mappedDifficulty = difficultyDisplayNames.map((d) => ({
+                    language: d.language,
+                    display_name: d.display_name,
+                  }));
+
+                  return {
+                    id: problem.problem_id,
+                    problem_difficulty:
+                      mappedDifficulty.length > 0
+                        ? mappedDifficulty
+                        : [{ language: 'en-US', display_name: 'Unknown' }],
+                    details: [
+                      {
+                        // Create placeholder details with just the title
+                        language: titleObj.language,
+                        title: titleObj.title,
+                        background: '',
+                        statement: '',
+                        input_format: '',
+                        output_format: '',
+                        note: '',
+                      },
+                    ],
+                    examples: [],
+                    is_submitted: true,
+                    created_at: new Date(problem.created_at || Date.now()),
+                    updated_at: new Date(problem.updated_at || Date.now()),
+                    author: problem.creator?.username || 'Unknown',
+                    status: problem.status || 'pending',
+                  };
+                },
+              )
+            : [];
+          console.log(transformedProblems);
+
+          setProblems(transformedProblems);
+        }
+      } catch (error) {
+        console.error('Error fetching problems:', error);
+        if (isMounted) {
+          // Fallback to mock data
+          const mockProblems: IProblem[] = [];
+          setProblems(mockProblems);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchProblems();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Filter and sort problems
@@ -145,10 +163,16 @@ const ProblemReview = () => {
             {t('problemReview.statuses.pending')}
           </span>
         );
-      case 'approved':
+      case 'approve':
         return (
           <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400">
             {t('problemReview.statuses.approved')}
+          </span>
+        );
+      case 'approved_for_testing':
+        return (
+          <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400">
+            {t('problemReview.statuses.approvedForTesting')}
           </span>
         );
       case 'rejected':
@@ -157,7 +181,7 @@ const ProblemReview = () => {
             {t('problemReview.statuses.rejected')}
           </span>
         );
-      case 'needs_changes':
+      case 'needs_revision':
         return (
           <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-500/20 text-orange-400">
             {t('problemReview.statuses.needsChanges')}

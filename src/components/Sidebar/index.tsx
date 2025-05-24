@@ -14,9 +14,12 @@ import { NavLink } from 'react-router-dom';
 
 import LanguageSwitcher from '../LanguageSwitcher';
 
-const Sidebar = ({ userRole }: { userRole: string }) => {
+const Sidebar = ({ userRoles }: { userRoles: string[] }) => {
   const { t } = useTranslation();
   const [collapsed, setCollapsed] = useState(false);
+
+  const hasRole = (role: string) => userRoles.includes(role);
+  const isAdmin = () => hasRole('admin') || hasRole('super_admin');
 
   const sidebarItems = [
     {
@@ -33,31 +36,25 @@ const Sidebar = ({ userRole }: { userRole: string }) => {
       id: 'problem-verification',
       label: t('sidebar.problemVerification'),
       icon: <DocumentCheckIcon className="w-5 h-5" />,
-      show:
-        userRole === 'verifier' ||
-        userRole === 'admin' ||
-        userRole === 'super_admin',
+      show: hasRole('tester') || isAdmin(),
     },
     {
       id: 'problem-review',
       label: t('sidebar.problemReview'),
       icon: <DocumentMagnifyingGlassIcon className="w-5 h-5" />,
-      show:
-        userRole === 'verifier' ||
-        userRole === 'admin' ||
-        userRole === 'super_admin',
+      show: hasRole('reviewer') || isAdmin(),
     },
     {
       id: 'problem-bank',
       label: t('sidebar.problemBank'),
       icon: <ServerStackIcon className="w-5 h-5" />,
-      show: userRole === 'admin' || userRole === 'super_admin',
+      show: isAdmin(),
     },
     {
       id: 'super-admin',
       label: t('sidebar.superAdmin'),
       icon: <ShieldCheckIcon className="w-5 h-5" />,
-      show: userRole === 'super_admin',
+      show: hasRole('super_admin'),
     },
   ];
 

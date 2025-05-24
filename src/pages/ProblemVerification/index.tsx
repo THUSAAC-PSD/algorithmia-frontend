@@ -3,89 +3,158 @@ import {
   ChatBubbleLeftRightIcon,
   ClockIcon,
 } from '@heroicons/react/24/outline';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 import { IProblem } from '../../components/Problem';
 
+interface ProblemApiResponse {
+  problem_id: string;
+  title: Array<{
+    language: string;
+    title: string;
+  }>;
+  status: string;
+  creator?: {
+    user_id: string;
+    username: string;
+  };
+  reviewer?: {
+    user_id: string;
+    username: string;
+  };
+  testers?: Array<{
+    user_id: string;
+    username: string;
+  }>;
+  target_contest: null | unknown;
+  assigned_contest: null | unknown;
+  problem_difficulty: {
+    problem_difficulty_id: string;
+    display_names: Array<{
+      language: string;
+      display_name: string;
+    }>;
+  };
+  created_at: string;
+  updated_at: string;
+  author?: string;
+}
+
 const ProblemVerification = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [problems, setProblems] = useState<IProblem[]>([
-    {
-      id: 'aaa',
-      problem_difficulty: [{ language: 'en', display_name: 'Easy' }],
-      details: [
-        {
-          language: 'en',
-          title: 'Two Sum',
-          statement:
-            'Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.',
-          background: '',
-          input_format: '',
-          output_format: '',
-          note: '',
-        },
-      ],
-      examples: [],
-      is_submitted: true,
-      created_at: new Date('2025-05-01'),
-      updated_at: new Date('2025-05-01'),
-      author: 'John Doe',
-      status: 'pending',
-    },
-    {
-      id: 'bbb',
-      problem_difficulty: [{ language: 'en', display_name: 'Medium' }],
-      details: [
-        {
-          language: 'en',
-          title: 'Binary Tree Level Order Traversal',
-          statement:
-            "Given the root of a binary tree, return the level order traversal of its nodes' values.",
-          background: '',
-          input_format: '',
-          output_format: '',
-          note: '',
-        },
-      ],
-      examples: [],
-      is_submitted: true,
-      created_at: new Date('2025-04-30'),
-      updated_at: new Date('2025-04-30'),
-      author: 'Jane Smith',
-      status: 'needs_changes',
-    },
-    {
-      id: 'ccc',
-      problem_difficulty: [{ language: 'en', display_name: 'Medium' }],
-      details: [
-        {
-          language: 'en',
-          title: 'Longest Palindromic Substring',
-          statement:
-            'Given a string s, return the longest palindromic substring in s.',
-          background: '',
-          input_format: '',
-          output_format: '',
-          note: '',
-        },
-      ],
-      examples: [],
-      is_submitted: true,
-      created_at: new Date('2025-04-29'),
-      updated_at: new Date('2025-04-29'),
-      author: 'Alex Johnson',
-      status: 'pending',
-    },
-  ]);
-
+  const [problems, setProblems] = useState<IProblem[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchProblems = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch submitted problems from the /problems endpoint
+        const response = await fetch('/api/problems', {
+          method: 'GET',
+          mode: 'cors',
+          headers: {
+            'ngrok-skip-browser-warning': 'abc',
+          },
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            (await response.json()).message ||
+              'Failed to load problems for verification',
+          );
+        }
+
+        const data = await response.json();
+
+        if (isMounted) {
+          // Transform published problems
+          const transformedProblems = Array.isArray(data?.problems)
+            ? data.problems.map((problem: ProblemApiResponse) => {
+                // Extract title from the array of language-title objects
+                const titleObj =
+                  Array.isArray(problem.title) && problem.title.length > 0
+                    ? problem.title.find((t) => t.language === 'en-US') ||
+                      problem.title[0]
+                    : { language: 'en-US', title: 'Untitled Problem' };
+
+                // Transform problem_difficulty to match IProblem format
+                const difficultyDisplayNames =
+                  problem.problem_difficulty?.display_names || [];
+                const mappedDifficulty = difficultyDisplayNames.map((d) => ({
+                  language: d.language,
+                  display_name: d.display_name,
+                }));
+
+                return {
+                  id: problem.problem_id,
+                  problem_difficulty:
+                    mappedDifficulty.length > 0
+                      ? mappedDifficulty
+                      : [{ language: 'en-US', display_name: 'Unknown' }],
+                  details: [
+                    {
+                      // Create placeholder details with just the title
+                      language: titleObj.language,
+                      title: titleObj.title,
+                      background: '',
+                      statement: '',
+                      input_format: '',
+                      output_format: '',
+                      note: '',
+                    },
+                  ],
+                  examples: [],
+                  is_submitted: true,
+                  created_at: new Date(problem.created_at || Date.now()),
+                  updated_at: new Date(problem.updated_at || Date.now()),
+                  author: problem.creator?.username || 'Unknown',
+                  status: problem.status || 'pending',
+                };
+              })
+            : [];
+          console.log('Fetched problems:', transformedProblems);
+          setProblems(transformedProblems);
+        }
+      } catch (error) {
+        console.error('Error fetching problems:', error);
+        toast.error(
+          error instanceof Error ? error.message : 'Failed to load problems',
+        );
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchProblems();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Fallback data for development if no problems are loaded
+  useEffect(() => {
+    if (!isLoading && problems.length === 0) {
+      console.warn('No problems found from API, using fallback data');
+      setProblems([]);
+    }
+  }, [isLoading, problems.length]);
 
   const filteredAndSortedProblems = problems
     .filter((problem) => {
@@ -111,39 +180,67 @@ const ProblemVerification = () => {
     setSortOrder(sortOrder === 'newest' ? 'oldest' : 'newest');
   };
 
-  const handleStatusChange = (
+  const handleStatusChange = async (
     problemId: string,
     newStatus: IProblem['status'],
   ) => {
-    setProblems(
-      problems.map((problem) =>
-        problem.id === problemId ? { ...problem, status: newStatus } : problem,
-      ),
-    );
-    // TODO: Send status change to server
+    try {
+      // Send status change to server
+      const response = await fetch(`/api/problems/${problemId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'abc',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          (await response.json()).message || 'Failed to update problem status',
+        );
+      }
+
+      // Update local state
+      setProblems(
+        problems.map((problem) =>
+          problem.id === problemId
+            ? { ...problem, status: newStatus }
+            : problem,
+        ),
+      );
+
+      toast.success(t('problemVerification.statusUpdated'));
+    } catch (error) {
+      console.error('Error updating problem status:', error);
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to update status',
+      );
+    }
   };
 
   const getStatusBadge = (status: IProblem['status']) => {
     switch (status) {
-      case 'pending':
+      case 'pending_review':
         return (
           <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400">
             {t('problemVerification.statuses.pending')}
           </span>
         );
-      case 'approved':
+      case 'approve':
         return (
           <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400">
             {t('problemVerification.statuses.approved')}
           </span>
         );
-      case 'rejected':
+      case 'reject':
         return (
           <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400">
             {t('problemVerification.statuses.rejected')}
           </span>
         );
-      case 'needs_changes':
+      case 'needs_revision':
         return (
           <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-500/20 text-orange-400">
             {t('problemVerification.statuses.needsChanges')}
@@ -154,10 +251,47 @@ const ProblemVerification = () => {
     }
   };
 
-  const submitFeedback = () => {
-    // TODO: Implement feedback submission logic
-    handleStatusChange(activeTabId!, 'needs_changes');
-    setActiveTabId(null);
+  const [feedbackText, setFeedbackText] = useState<string>('');
+
+  const submitFeedback = async () => {
+    if (!activeTabId) return;
+
+    setIsSubmitting(true);
+    try {
+      // Send feedback to server
+      const response = await fetch(`/api/problems/${activeTabId}/feedback`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'abc',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          feedback: feedbackText,
+          status: 'needs_changes',
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          (await response.json()).message || 'Failed to submit feedback',
+        );
+      }
+
+      // Update local state
+      await handleStatusChange(activeTabId, 'needs_revision');
+
+      toast.success(t('problemVerification.feedbackSubmitted'));
+      setFeedbackText('');
+      setActiveTabId(null);
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to submit feedback',
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChatRedirect = (problemId: string, e: React.MouseEvent) => {
@@ -166,6 +300,7 @@ const ProblemVerification = () => {
   };
 
   const handleProblemClick = (problemId: string) => {
+    // Navigate to the problem verification detail page
     navigate(`/problemverification/${problemId}`);
   };
 
@@ -222,7 +357,11 @@ const ProblemVerification = () => {
       </div>
 
       <div className="flex-1 p-6 overflow-auto">
-        {filteredAndSortedProblems.length === 0 ? (
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center h-full text-slate-400">
+            <p className="text-xl">{t('common.loading')}</p>
+          </div>
+        ) : filteredAndSortedProblems.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-slate-400">
             <p className="text-xl">
               {t('problemVerification.noProblemsFound')}
@@ -296,6 +435,8 @@ const ProblemVerification = () => {
                         placeholder={t(
                           'problemVerification.feedbackPlaceholder',
                         )}
+                        value={feedbackText}
+                        onChange={(e) => setFeedbackText(e.target.value)}
                         className="w-full p-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                         rows={4}
                       ></textarea>
@@ -310,11 +451,38 @@ const ProblemVerification = () => {
                         {t('common.cancel')}
                       </button>
                       <button
-                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
+                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed text-white rounded-lg transition-colors"
                         type="button"
+                        disabled={!feedbackText.trim() || isSubmitting}
                         onClick={submitFeedback}
                       >
-                        {t('problemVerification.submitFeedback')}
+                        {isSubmitting ? (
+                          <div className="flex items-center">
+                            <svg
+                              className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                              ></circle>
+                              <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                              ></path>
+                            </svg>
+                            {t('common.submitting')}
+                          </div>
+                        ) : (
+                          t('problemVerification.submitFeedback')
+                        )}
                       </button>
                     </div>
                   </div>

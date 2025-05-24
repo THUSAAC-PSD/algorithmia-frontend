@@ -1,96 +1,260 @@
 import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
 import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 
-import { API_BASE_URL } from '../../config';
 import ProblemDetail from './ProblemDetail';
 import ProblemList from './ProblemList';
-import { Problem, ViewType } from './types';
+import {
+  CombinedProblemListItem,
+  Problem,
+  ProblemExample,
+  ProblemType,
+  PublishedProblem,
+  ViewType,
+} from './types';
 
 const ProblemSetting = () => {
   const { t } = useTranslation();
   const [currentView, setCurrentView] = useState<ViewType>('list');
   const [currentProblem, setCurrentProblem] = useState<Problem | null>(null);
+  const [currentProblemType, setCurrentProblemType] =
+    useState<ProblemType>('draft');
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortColumn, setSortColumn] = useState<keyof Problem | null>(null);
+  const [sortColumn, setSortColumn] = useState<
+    keyof CombinedProblemListItem | null
+  >(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [isLoading, setIsLoading] = useState(true);
+  const showMyProblemsOnly = true;
 
-  // Sample data
-  const [problems, setProblems] = useState<Problem[]>([
-    // {
-    //   problem_draft_id: '114514',
-    //   details: {
-    //     language: 'en-US',
-    //     title: 'A+B Problem',
-    //     background: 'A+B',
-    //     statement: 'B+A',
-    //     input_format: 'A',
-    //     output_format: 'B',
-    //     note: 'This is a note',
-    //   },
-    //   examples: [{ input: '1 2', output: '3' }],
-    //   problem_difficulty_id: 'easy',
-    //   is_submitted: true,
-    //   target_contest_id: 'contest_1',
-    //   comments: ['This is the first comment', 'This is the second comment'],
-    //   created_at: '2025-03-20',
-    //   updated_at: '2025-04-20',
-    // },
-  ]);
+  // State for separate problem types
+  const [problemDrafts, setProblemDrafts] = useState<Problem[]>([]);
+  const [publishedProblems, setPublishedProblems] = useState<
+    PublishedProblem[]
+  >([]);
+  const [combinedProblems, setCombinedProblems] = useState<
+    CombinedProblemListItem[]
+  >([]);
 
   useEffect(() => {
-    const abortController = new AbortController();
     let isMounted = true;
 
-    const fetchProblems = async () => {
+    const fetchData = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(`${API_BASE_URL}/problem-drafts`, {
-          method: 'GET',
-          mode: 'cors',
-          headers: {
-            'ngrok-skip-browser-warning': 'abc',
-          },
-          credentials: 'include',
-          signal: abortController.signal,
-        });
+        // Fetch problem drafts
+        const [draftResponse, publishedResponse] = await Promise.all([
+          fetch(`/api/problem-drafts`, {
+            method: 'GET',
+            mode: 'cors',
+            headers: {
+              'ngrok-skip-browser-warning': 'abc',
+            },
+            credentials: 'include',
+          }),
+          fetch(`/api/problems`, {
+            method: 'GET',
+            mode: 'cors',
+            headers: {
+              'ngrok-skip-browser-warning': 'abc',
+            },
+            credentials: 'include',
+          }),
+        ]);
 
-        if (!response.ok) {
+        if (!draftResponse.ok) {
           throw new Error(
-            (await response.json()).message || 'Failed to load problems',
+            (await draftResponse.json()).message ||
+              'Failed to load problem drafts',
           );
         }
 
-        const data = await response.json();
-        if (isMounted) {
-          setProblems(
-            Array.isArray(data?.problem_drafts) ? data.problem_drafts : [],
-          );
+        let publishedData: { problems: PublishedProblem[] } = { problems: [] };
+
+        if (publishedResponse.ok) {
+          publishedData = await publishedResponse.json();
+          console.log('Published problems:', publishedData);
         }
-      } catch {
+
+        const draftData = await draftResponse.json();
+        console.log(draftData, publishedData);
+
         if (isMounted) {
-          setProblems([]);
+          // Transform draft problems
+          const transformedDraftProblems = Array.isArray(
+            draftData?.problem_drafts,
+          )
+            ? draftData.problem_drafts.map(
+                (problem: {
+                  problem_draft_id: string;
+                  details: Array<{
+                    language: string;
+                    title: string;
+                    background: string;
+                    statement: string;
+                    input_format: string;
+                    output_format: string;
+                    note: string;
+                  }>;
+                  examples: ProblemExample[];
+                  problem_difficulty_id: string;
+                  is_submitted: boolean;
+                  target_contest_id: string;
+                  comments: string[];
+                  created_at: string;
+                  updated_at: string;
+                }) => ({
+                  ...problem,
+                  // Take the first language version from the array (or create an empty object if details is empty)
+                  details:
+                    Array.isArray(problem.details) && problem.details.length > 0
+                      ? problem.details[0]
+                      : {
+                          language: 'en-US',
+                          title: '',
+                          background: '',
+                          statement: '',
+                          input_format: '',
+                          output_format: '',
+                          note: '',
+                        },
+                }),
+              )
+            : [];
+
+          // Transform published problems
+          const transformedPublishedProblems = Array.isArray(
+            publishedData?.problems,
+          )
+            ? publishedData.problems.map(
+                (problem: {
+                  problem_id: string;
+                  title: Array<{ language: string; title: string }>;
+                  status: string;
+                  creator?: { user_id: string; username: string };
+                  reviewer?: { user_id: string; username: string };
+                  testers?: Array<{ user_id: string; username: string }>;
+                  target_contest: null | unknown;
+                  assigned_contest: null | unknown;
+                  problem_difficulty: {
+                    problem_difficulty_id: string;
+                    display_names: Array<{
+                      language: string;
+                      display_name: string;
+                    }>;
+                  };
+                  created_at: string;
+                  updated_at: string;
+                }) => {
+                  // Extract title from the array of language-title objects
+                  const titleObj =
+                    Array.isArray(problem.title) && problem.title.length > 0
+                      ? problem.title.find((t) => t.language === 'en-US') ||
+                        problem.title[0]
+                      : { language: 'en-US', title: '' };
+
+                  // Initial problem object with title from list endpoint
+                  return {
+                    problem_id: problem.problem_id,
+                    title: problem.title,
+                    status: problem.status,
+                    creator: problem.creator,
+                    reviewer: problem.reviewer,
+                    testers: problem.testers,
+                    target_contest: problem.target_contest,
+                    assigned_contest: problem.assigned_contest,
+                    problem_difficulty: problem.problem_difficulty,
+                    created_at: problem.created_at,
+                    updated_at: problem.updated_at,
+
+                    // Create placeholder details
+                    details: {
+                      language: titleObj.language,
+                      title: titleObj.title,
+                      background: '',
+                      statement: '',
+                      input_format: '',
+                      output_format: '',
+                      note: '',
+                    },
+                    examples: [],
+                    comments: [],
+                  } as PublishedProblem;
+                },
+              )
+            : [];
+
+          // Store the original problems
+          setProblemDrafts(transformedDraftProblems);
+          setPublishedProblems(transformedPublishedProblems);
+          // Create combined list for display
+          const combinedList: CombinedProblemListItem[] = [
+            // Map drafts to combined format
+            ...transformedDraftProblems.map(
+              (draft: Problem): CombinedProblemListItem => ({
+                id: draft.problem_draft_id,
+                type: 'draft' as ProblemType,
+                title: draft.details.title,
+                status: draft.is_submitted ? 'submitted' : 'draft',
+                created_at: draft.created_at,
+                updated_at: draft.updated_at,
+                originalProblem: draft,
+              }),
+            ),
+            // Map published problems to combined format
+            ...transformedPublishedProblems.map((pub) => ({
+              id: pub.problem_id,
+              type: 'published' as ProblemType,
+              title: pub.details?.title || '',
+              status: pub.status || 'published',
+              created_at: pub.created_at,
+              updated_at: pub.updated_at,
+              originalProblem: pub,
+            })),
+          ];
+
+          setCombinedProblems(combinedList);
+        }
+      } catch (error) {
+        console.error('Error fetching problems:', error);
+        if (isMounted) {
+          setProblemDrafts([]);
+          setPublishedProblems([]);
+          setCombinedProblems([]);
         }
       } finally {
         if (isMounted) setIsLoading(false);
       }
     };
 
-    fetchProblems();
+    fetchData();
     return () => {
       isMounted = false;
-      abortController.abort();
     };
   }, []);
 
-  // Filter problems based on search term
-  const filteredProblems = problems.filter((problem) =>
-    problem.details.title.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+  // Filter combined problems based on search term and current user filter
+  const currentUserId = localStorage.getItem('userId');
+  const filteredProblems = combinedProblems.filter((problem) => {
+    // Filter by search term
+    const matchesSearchTerm = problem.title
+      ?.toLowerCase()
+      .includes(searchTerm.toLowerCase());
+    // Filter by current user if the toggle is on
+    const matchesCurrentUser =
+      !showMyProblemsOnly ||
+      (problem.originalProblem &&
+        ((problem.type === 'published' &&
+          (problem.originalProblem as PublishedProblem).creator?.user_id ===
+            currentUserId) ||
+          problem.type === 'draft'));
+
+    return matchesSearchTerm && matchesCurrentUser;
+  });
 
   // Sort problems based on current sort column and direction
-  const handleSort = (column: keyof Problem) => {
+  const handleSort = (column: keyof CombinedProblemListItem) => {
     if (sortColumn === column) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
@@ -100,7 +264,7 @@ const ProblemSetting = () => {
   };
 
   // Helper to render sort indicator
-  const renderSortIndicator = (column: keyof Problem) => {
+  const renderSortIndicator = (column: keyof CombinedProblemListItem) => {
     if (sortColumn !== column) return null;
 
     return sortDirection === 'asc' ? (
@@ -110,35 +274,327 @@ const ProblemSetting = () => {
     );
   };
 
-  const handleDeleteProblem = (id: string) => {
-    // TODO: Add confirmation dialog
-    // TODO: Request to delete from the server
-    setProblems(problems.filter((problem) => problem.problem_draft_id !== id));
-  };
+  const handleDeleteProblem = (id: string, type: ProblemType) => {
+    // Only drafts can be deleted
+    if (type !== 'draft') {
+      toast.error('Published problems cannot be deleted.');
+      return;
+    }
 
-  const handleSubmitProblem = (id: string) => {
-    // TODO: Request to submit the problem
-    setProblems(
-      problems.map((problem) =>
-        problem.problem_draft_id === id
-          ? { ...problem, is_submitted: true }
-          : problem,
+    // Find the problem title for the confirmation message
+    const problemToDelete = combinedProblems.find(
+      (p) => p.id === id && p.type === type,
+    );
+    const problemTitle = problemToDelete?.title || 'this problem';
+
+    toast(
+      (t) => (
+        <div className="flex flex-col gap-2">
+          <p>Are you sure you want to delete "{problemTitle}"?</p>
+          <p className="text-gray-400 text-sm">This action cannot be undone.</p>
+          <div className="flex gap-2 mt-2 justify-end">
+            <button
+              type="button"
+              onClick={() => toast.dismiss(t.id)}
+              className="px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-white"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                toast.dismiss(t.id);
+                setIsLoading(true);
+                const loadingToast = toast.loading('Deleting problem...');
+
+                fetch(`/api/problem-drafts/${id}`, {
+                  method: 'DELETE',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'ngrok-skip-browser-warning': 'abc',
+                  },
+                  credentials: 'include',
+                })
+                  .then((response) => {
+                    if (!response.ok) {
+                      return response.json().then((data) => {
+                        throw new Error(
+                          data.message || 'Failed to delete problem',
+                        );
+                      });
+                    }
+
+                    // Update both the original drafts array and the combined list
+                    setProblemDrafts(
+                      problemDrafts.filter(
+                        (problem) => problem.problem_draft_id !== id,
+                      ),
+                    );
+                    setCombinedProblems(
+                      combinedProblems.filter(
+                        (problem) =>
+                          !(problem.id === id && problem.type === 'draft'),
+                      ),
+                    );
+
+                    toast.dismiss(loadingToast);
+                    toast.success(
+                      `Problem "${problemTitle}" has been deleted successfully.`,
+                    );
+                  })
+                  .catch((error) => {
+                    console.error('Error deleting problem:', error);
+                    toast.dismiss(loadingToast);
+                    toast.error(
+                      error instanceof Error
+                        ? error.message
+                        : 'Failed to delete problem',
+                    );
+                  })
+                  .finally(() => {
+                    setIsLoading(false);
+                  });
+              }}
+              className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-white"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
       ),
+      { duration: 10000 },
     );
   };
 
-  const handleProblemClick = (id: string) => {
+  const handleSubmitProblem = (id: string) => {
+    // Find the problem title for the confirmation message
+    const problemToSubmit = combinedProblems.find((p) => p.id === id);
+    const problemTitle = problemToSubmit?.title || 'this problem';
+
+    // Custom confirm dialog using toast
+    toast(
+      (t) => (
+        <div className="flex flex-col gap-2">
+          <p>Are you sure you want to submit "{problemTitle}"?</p>
+          <p className="text-gray-400 text-sm">
+            Once submitted, the problem will be sent for review and cannot be
+            modified further.
+          </p>
+          <div className="flex gap-2 mt-2 justify-end">
+            <button
+              type="button"
+              onClick={() => toast.dismiss(t.id)}
+              className="px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-white"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                toast.dismiss(t.id);
+                submitProblem(id);
+              }}
+              className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 rounded text-white"
+            >
+              Submit
+            </button>
+          </div>
+        </div>
+      ),
+      { duration: 10000 },
+    );
+  };
+
+  const submitProblem = async (id: string) => {
+    console.log(id);
+    try {
+      // Show loading state
+      setIsLoading(true);
+      const loadingToast = toast.loading('Submitting problem...');
+
+      const response = await fetch(`/api/problem-drafts/${id}/submit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'abc',
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to submit problem');
+      }
+
+      // Update the original drafts state
+      setProblemDrafts(
+        problemDrafts.map((problem) =>
+          problem.problem_draft_id === id
+            ? { ...problem, is_submitted: true, type: 'published' }
+            : problem,
+        ),
+      );
+
+      // Update the combined problems state
+      setCombinedProblems(
+        combinedProblems.map((problem) =>
+          problem.id === id && problem.type === 'draft'
+            ? { ...problem, status: 'submitted', type: 'published' }
+            : problem,
+        ),
+      );
+
+      // Show success message
+      toast.dismiss(loadingToast);
+      toast.success('Problem submitted successfully!');
+    } catch (error) {
+      console.error('Error submitting problem:', error);
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to submit problem',
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    console.log('Current problem type:', currentProblemType);
+    console.log('Current problem:', currentProblem);
+  }, [currentProblemType, currentProblem]);
+
+  const handleProblemClick = (id: string, type: ProblemType) => {
     // Find the selected problem and set the view to detail
-    const problem = problems.find((p) => p.problem_draft_id === id);
-    if (problem) {
-      setCurrentProblem(problem);
-      setCurrentView('detail');
+    if (type === 'draft') {
+      const problem = problemDrafts.find((p) => p.problem_draft_id === id);
+      if (problem) {
+        setCurrentProblem(problem);
+        setCurrentProblemType('draft');
+        setCurrentView('detail');
+      }
+    } else if (type === 'published') {
+      const problem = publishedProblems.find((p) => p.problem_id === id);
+      if (problem) {
+        // Fetch full problem details when viewing a published problem
+        const loadingToast = toast.loading('Loading problem details...');
+
+        fetch(`/api/problems/${id}`, {
+          method: 'GET',
+          mode: 'cors',
+          headers: {
+            'ngrok-skip-browser-warning': 'abc',
+          },
+          credentials: 'include',
+        })
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error('Failed to load problem details');
+            }
+            return response.json();
+          })
+          .then((data) => {
+            toast.dismiss(loadingToast);
+
+            const latestVersion = data.problem.versions[0];
+
+            // Get the English details or fallback to first available
+            const detailsObj =
+              Array.isArray(latestVersion.details) &&
+              latestVersion.details.length > 0
+                ? latestVersion.details.find(
+                    (d: { language: string }) => d.language === 'en-US',
+                  ) || latestVersion.details[0]
+                : {
+                    language: 'en-US',
+                    title: '',
+                    background: '',
+                    statement: '',
+                    input_format: '',
+                    output_format: '',
+                    note: '',
+                  };
+
+            // Convert to our internal Problem format
+            const convertedProblem: Problem = {
+              problem_draft_id: data.problem.problem_id,
+              details: {
+                language: detailsObj.language,
+                title: detailsObj.title,
+                background: detailsObj.background || '',
+                statement: detailsObj.statement || '',
+                input_format: detailsObj.input_format || '',
+                output_format: detailsObj.output_format || '',
+                note: detailsObj.note || '',
+              },
+              examples: Array.isArray(latestVersion.examples)
+                ? latestVersion.examples
+                : [],
+              problem_difficulty_id:
+                latestVersion.problem_difficulty?.problem_difficulty_id || '',
+              is_submitted: true,
+              target_contest_id: data.problem.target_contest?.id || '',
+              comments: Array.isArray(data.problem.comments)
+                ? data.problem.comments
+                : [],
+              created_at: data.problem.created_at,
+              updated_at: data.problem.updated_at,
+              status: data.problem.status,
+            };
+
+            setCurrentProblem(convertedProblem);
+            setCurrentProblemType('published');
+            setCurrentView('detail');
+          })
+          .catch((error) => {
+            console.error('Error fetching problem details:', error);
+            toast.dismiss(loadingToast);
+            toast.error(
+              error instanceof Error
+                ? error.message
+                : 'Failed to load problem details',
+            );
+
+            // Fallback to basic details if full details fetch fails
+            const convertedProblem: Problem = {
+              problem_draft_id: problem.problem_id,
+              details: {
+                language: 'en-US',
+                title:
+                  Array.isArray(problem.title) && problem.title.length > 0
+                    ? (
+                        problem.title.find(
+                          (t: { language: string; title: string }) =>
+                            t.language === 'en-US',
+                        ) || problem.title[0]
+                      ).title
+                    : '',
+                background: '',
+                statement: '',
+                input_format: '',
+                output_format: '',
+                note: '',
+              },
+              examples: [],
+              problem_difficulty_id:
+                problem.problem_difficulty?.problem_difficulty_id || '',
+              is_submitted: true,
+              target_contest_id: '',
+              comments: [],
+              created_at: problem.created_at,
+              updated_at: problem.updated_at,
+            };
+
+            setCurrentProblem(convertedProblem);
+            setCurrentProblemType('published');
+            setCurrentView('detail');
+          });
+      }
     }
   };
 
   const handleAddNewProblem = () => {
     // Switch to new problem view
     setCurrentProblem(null);
+    setCurrentProblemType('draft');
     setCurrentView('detail');
   };
 
@@ -149,8 +605,7 @@ const ProblemSetting = () => {
 
   // Navigation to chat for a specific problem
   const handleNavigateToChat = (id: string) => {
-    // TODO: Implement chat navigation
-    console.log(`Navigate to chat for problem ${id}`);
+    window.location.href = `/chat/${id}`;
   };
 
   if (isLoading) {
@@ -207,20 +662,102 @@ const ProblemSetting = () => {
       {currentView === 'detail' && (
         <ProblemDetail
           problem={currentProblem}
+          isReadOnly={
+            currentProblemType === 'published' &&
+            currentProblem?.status !== 'needs_revision'
+          }
           onSave={(problem) => {
-            if (currentProblem) {
-              setProblems(
-                problems.map((p) =>
-                  p.problem_draft_id === problem.problem_draft_id ? problem : p,
-                ),
-              );
-            } else {
-              setProblems([...problems, problem]);
+            if (
+              currentProblemType === 'draft' ||
+              currentProblem?.status === 'needs_revision'
+            ) {
+              if (currentProblem) {
+                setProblemDrafts(
+                  problemDrafts.map((p) =>
+                    p.problem_draft_id === problem.problem_draft_id
+                      ? problem
+                      : p,
+                  ),
+                );
+
+                setCombinedProblems(
+                  combinedProblems.map((p) => {
+                    if (
+                      p.id === problem.problem_draft_id &&
+                      p.type === 'draft'
+                    ) {
+                      return {
+                        ...p,
+                        title: problem.details.title,
+                        updated_at: new Date().toISOString(),
+                        originalProblem: problem,
+                      };
+                    }
+                    return p;
+                  }),
+                );
+                handleBackToList();
+              } else {
+                // Add new problem
+                setProblemDrafts([...problemDrafts, problem]);
+
+                // Add to combined problems
+                setCombinedProblems([
+                  ...combinedProblems,
+                  {
+                    id: problem.problem_draft_id,
+                    type: 'draft',
+                    title: problem.details.title,
+                    status: 'draft',
+                    created_at: problem.created_at || new Date().toISOString(),
+                    updated_at: problem.updated_at || new Date().toISOString(),
+                    originalProblem: problem,
+                  },
+                ]);
+              }
+
+              const apiProblemData = {
+                details: [problem.details],
+                examples: problem.examples,
+                problem_difficulty_id:
+                  problem.problem_difficulty_id ||
+                  '01969fec-37ad-7908-bd91-a70a3b96ac96',
+              };
+
+              console.log('Saving problem:', apiProblemData);
+              const loadingToast = toast.loading('Saving problem...');
+
+              fetch(`/api/problem-drafts`, {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'ngrok-skip-browser-warning': 'abc',
+                },
+                credentials: 'include',
+                body: JSON.stringify(apiProblemData),
+              })
+                .then((response) => {
+                  if (!response.ok) {
+                    throw new Error('Failed to save problem');
+                  }
+                  return response.json();
+                })
+                .then((data) => {
+                  console.log('Problem saved successfully:', data);
+                  toast.dismiss(loadingToast);
+                  toast.success('Problem saved successfully!');
+                })
+                .catch((error) => {
+                  console.error('Error saving problem:', error);
+                  toast.dismiss(loadingToast);
+                  toast.error(
+                    error instanceof Error
+                      ? error.message
+                      : 'Failed to save problem',
+                  );
+                });
+              handleBackToList();
             }
-            // TODO: upload to backend
-            new Promise((resolve) => setTimeout(resolve, 1000)).then(() =>
-              handleBackToList(),
-            );
           }}
           onCancel={handleBackToList}
         />

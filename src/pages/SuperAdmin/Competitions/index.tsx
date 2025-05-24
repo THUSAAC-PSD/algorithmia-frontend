@@ -45,40 +45,38 @@ const CompetitionManagement = () => {
     deadline_datetime: '',
   });
 
-  // Load mock data
+  // Load competitions data from API
   useEffect(() => {
-    // TODO: Replace with actual API call
-    setTimeout(() => {
-      const now = new Date();
-      const mockCompetitions: Competition[] = [
-        {
-          contest_id: 'contest-1',
-          title: 'Algorithmic Challenge 2025',
-          description: 'Annual competition focused on algorithm optimization',
-          min_problem_count: 5,
-          max_problem_count: 10,
-          deadline_datetime: new Date(
-            now.getTime() + 30 * 24 * 60 * 60 * 1000,
-          ).toISOString(),
-          created_at: new Date(
-            now.getTime() - 15 * 24 * 60 * 60 * 1000,
-          ).toISOString(),
-        },
-        {
-          contest_id: 'contest-2',
-          title: 'Weekly Code Sprint #42',
-          description: 'Weekly competition with medium difficulty problems',
-          min_problem_count: 3,
-          max_problem_count: 5,
-          deadline_datetime: new Date().toISOString(),
-          created_at: new Date(
-            now.getTime() - 5 * 24 * 60 * 60 * 1000,
-          ).toISOString(),
-        },
-      ];
-      setCompetitions(mockCompetitions);
-      setLoading(false);
-    }, 800);
+    const fetchCompetitions = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch('/api/contests', {
+          method: 'GET',
+          headers: {
+            'ngrok-skip-browser-warning': 'abc',
+          },
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch competitions');
+        }
+
+        const data = await response.json();
+        if (data && Array.isArray(data.contests)) {
+          setCompetitions(data.contests);
+        } else {
+          setCompetitions([]);
+        }
+      } catch (error) {
+        console.error('Error fetching competitions:', error);
+        setCompetitions([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCompetitions();
   }, []);
 
   // Filter competitions based on search
@@ -118,53 +116,105 @@ const CompetitionManagement = () => {
   };
 
   // Execute competition deletion
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (competitionToDelete) {
-      setCompetitions(
-        competitions.filter((c) => c.contest_id !== competitionToDelete),
-      );
-      // TODO: Replace with actual API call to delete competition
+      try {
+        const response = await fetch(`/api/contests/${competitionToDelete}`, {
+          method: 'DELETE',
+          headers: {
+            'ngrok-skip-browser-warning': 'abc',
+          },
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to delete competition');
+        }
+
+        // Update local state after successful deletion
+        setCompetitions(
+          competitions.filter((c) => c.contest_id !== competitionToDelete),
+        );
+      } catch (error) {
+        console.error('Error deleting competition:', error);
+        // Could add error notification here
+      }
     }
     setShowDeleteModal(false);
     setCompetitionToDelete(null);
   };
 
   // Handle competition save (create or update)
-  const handleSaveCompetition = () => {
-    const deadlineDateObj = new Date(formData.deadline_datetime);
-    deadlineDateObj.setHours(23, 59, 59);
+  const handleSaveCompetition = async () => {
+    try {
+      const deadlineDateObj = new Date(formData.deadline_datetime);
+      deadlineDateObj.setHours(23, 59, 59);
 
-    if (currentCompetition) {
-      // Update existing competition
-      setCompetitions(
-        competitions.map((comp) =>
-          comp.contest_id === currentCompetition.contest_id
-            ? {
-                ...comp,
-                title: formData.title,
-                description: formData.description,
-                min_problem_count: formData.min_problem_count,
-                max_problem_count: formData.max_problem_count,
-                deadline_datetime: deadlineDateObj.toISOString(),
-              }
-            : comp,
-        ),
-      );
-    } else {
-      // Create new competition
-      const newCompetition: Competition = {
-        contest_id: `contest-${Date.now()}`,
+      // Prepare the request body
+      const competitionData = {
         title: formData.title,
         description: formData.description,
         min_problem_count: formData.min_problem_count,
         max_problem_count: formData.max_problem_count,
         deadline_datetime: deadlineDateObj.toISOString(),
-        created_at: new Date().toISOString(),
       };
-      setCompetitions([...competitions, newCompetition]);
-    }
 
-    setShowCompetitionModal(false);
+      let response;
+
+      if (currentCompetition) {
+        // Update existing competition
+        response = await fetch(
+          `/api/contests/${currentCompetition.contest_id}`,
+          {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'ngrok-skip-browser-warning': 'abc',
+            },
+            credentials: 'include',
+            body: JSON.stringify(competitionData),
+          },
+        );
+      } else {
+        // Create new competition
+        response = await fetch('/api/contests', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'abc',
+          },
+          credentials: 'include',
+          body: JSON.stringify(competitionData),
+        });
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to ${currentCompetition ? 'update' : 'create'} competition`,
+        );
+      }
+
+      // Refresh the competitions list
+      const fetchResponse = await fetch('/api/contests', {
+        method: 'GET',
+        headers: {
+          'ngrok-skip-browser-warning': 'abc',
+        },
+        credentials: 'include',
+      });
+
+      if (fetchResponse.ok) {
+        const data = await fetchResponse.json();
+        if (data && Array.isArray(data.contests)) {
+          setCompetitions(data.contests);
+        }
+      }
+
+      setShowCompetitionModal(false);
+    } catch (error) {
+      console.error('Error saving competition:', error);
+      // You could add error notification here
+    }
   };
 
   // Get title by ID
@@ -243,9 +293,6 @@ const CompetitionManagement = () => {
             <thead className="bg-slate-700/30">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                  {t('competitions.table.contestId')}
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
                   {t('competitions.table.details')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
@@ -269,15 +316,12 @@ const CompetitionManagement = () => {
                   className="hover:bg-slate-700/30 cursor-pointer"
                   onClick={() => handleViewCompetition(competition.contest_id)}
                 >
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">
-                    {competition.contest_id}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4 whitespace-normal max-w-xs">
                     <div className="flex flex-col">
-                      <div className="text-sm font-medium text-white">
+                      <div className="text-sm font-medium text-white truncate">
                         {competition.title}
                       </div>
-                      <div className="text-sm text-slate-400 line-clamp-1">
+                      <div className="text-sm text-slate-400 line-clamp-2">
                         {competition.description}
                       </div>
                     </div>

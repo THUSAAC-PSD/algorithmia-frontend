@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Toaster } from 'react-hot-toast';
 import {
   BrowserRouter,
   Navigate,
@@ -9,6 +10,7 @@ import {
 
 import Sidebar from './components/Sidebar';
 import SignIn from './pages/Auth/SignIn';
+import SignOut from './pages/Auth/SignOut';
 import SignUp from './pages/Auth/SignUp';
 import Chat from './pages/Chat';
 import Home from './pages/Home';
@@ -60,7 +62,7 @@ function AppWithRouter() {
 function AppContent() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [userRole, setUserRole] = useState('verifier'); // TODO: Replace with actual user role from API/localStorage
+  const [userRoles, setUserRoles] = useState<string[]>([]); // Store multiple roles
   const location = useLocation();
   const isAuthPage = ['/signin', '/signup'].includes(location.pathname);
 
@@ -68,15 +70,42 @@ function AppContent() {
   useEffect(() => {
     document.title = 'Algorithmia - Home';
 
-    const checkAuthStatus = () => {
-      // TODO: Replace with actual API call to check auth status
-      const loggedIn = localStorage.getItem('isLoggedIn') === 'true';
-      const userRole = localStorage.getItem('userRole') || 'user';
-      setIsLoggedIn(loggedIn);
+    const checkAuthStatus = async () => {
+      try {
+        const loggedIn = localStorage.getItem('isLoggedIn') === 'true';
+        setIsLoggedIn(loggedIn);
 
-      setUserRole(loggedIn ? userRole : '');
+        if (loggedIn) {
+          // Fetch the current user data from the API
+          const response = await fetch(`/api/users/current`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+          });
 
-      setIsLoading(false);
+          if (response.ok) {
+            // Get the user data with roles
+            const userData = await response.json();
+            const roles = userData.user?.roles || [];
+            setUserRoles(roles);
+          } else {
+            // If API call fails, fallback to localStorage
+            const rolesFromStorage = localStorage.getItem('userRoles');
+            setUserRoles(rolesFromStorage ? JSON.parse(rolesFromStorage) : []);
+          }
+        } else {
+          setUserRoles([]);
+        }
+      } catch (error) {
+        console.error('Error checking auth status:', error);
+        // Fallback to localStorage if API call fails
+        const rolesFromStorage = localStorage.getItem('userRoles');
+        setUserRoles(rolesFromStorage ? JSON.parse(rolesFromStorage) : []);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     checkAuthStatus();
@@ -91,24 +120,49 @@ function AppContent() {
   }
 
   // Helper function to check if user has verifier role
-  const isVerifier = () => userRole === 'verifier' || isAdmin();
+  const isVerifier = () => userRoles.includes('tester') || isAdmin();
 
   // Helper function to check if user is admin
-  const isAdmin = () => userRole === 'admin' || userRole === 'super_admin';
+  const isAdmin = () =>
+    userRoles.includes('admin') || userRoles.includes('super_admin');
 
   // Helper function to check if user is super admin
-  const isSuperAdmin = () => userRole === 'super_admin';
+  const isSuperAdmin = () => userRoles.includes('super_admin');
 
-  const isReviewer = () => userRole === 'reviewer' || isAdmin();
+  const isReviewer = () => userRoles.includes('reviewer') || isAdmin();
 
   return (
     <div className="flex h-screen w-screen">
       <TitleManager />
-      {isLoggedIn && !isAuthPage && <Sidebar userRole={userRole} />}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#1e293b',
+            color: '#fff',
+            borderRadius: '8px',
+          },
+          success: {
+            iconTheme: {
+              primary: '#4ade80',
+              secondary: '#1e293b',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#1e293b',
+            },
+          },
+        }}
+      />
+      {isLoggedIn && !isAuthPage && <Sidebar userRoles={userRoles} />}
       <Routes>
         {/* Public routes */}
         <Route path="/signin" element={<SignIn />} />
         <Route path="/signup" element={<SignUp />} />
+        <Route path="/signout" element={<SignOut />} />
         <Route path="/" element={isLoggedIn ? <Home /> : <LandingPage />} />
 
         {/* Protected routes */}

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BlockMath, InlineMath } from 'react-katex';
 import ReactMarkdown from 'react-markdown';
@@ -51,7 +51,12 @@ export interface IProblem {
   created_at: Date;
   updated_at: Date;
   author?: string;
-  status?: 'pending' | 'approved' | 'rejected' | 'needs_changes';
+  status?:
+    | 'approve'
+    | 'reject'
+    | 'needs_revision'
+    | 'pending_review'
+    | 'approved_for_testing';
 }
 
 interface ProblemProps {
@@ -61,6 +66,20 @@ interface ProblemProps {
 
 const Problem: React.FC<ProblemProps> = ({ problem, language }) => {
   const { t, i18n } = useTranslation();
+
+  const [exampleExist, setExampleExist] = React.useState(false);
+  useEffect(() => {
+    if (problem.examples.length > 1) {
+      setExampleExist(true);
+    } else if (problem.examples.length === 1) {
+      if (
+        problem.examples[0].input !== '' &&
+        problem.examples[0].output !== ''
+      ) {
+        setExampleExist(true);
+      }
+    }
+  }, [problem.examples]);
 
   // Use i18n's current language if no specific language is provided
   const currentLanguage = language || i18n.language;
@@ -78,25 +97,25 @@ const Problem: React.FC<ProblemProps> = ({ problem, language }) => {
   // Get status badge for rendering
   const getStatusBadge = (status: string | undefined) => {
     switch (status) {
-      case 'pending':
+      case 'pending_review':
         return (
           <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400">
             {t('problem.statuses.pending')}
           </span>
         );
-      case 'approved':
+      case 'approve':
         return (
           <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400">
             {t('problem.statuses.approved')}
           </span>
         );
-      case 'rejected':
+      case 'reject':
         return (
           <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400">
             {t('problem.statuses.rejected')}
           </span>
         );
-      case 'needs_changes':
+      case 'needs_revision':
         return (
           <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-500/20 text-orange-400">
             {t('problem.statuses.needs_changes')}
@@ -186,7 +205,7 @@ const Problem: React.FC<ProblemProps> = ({ problem, language }) => {
         </div>
       )}
 
-      {problem.examples && problem.examples.length > 0 && (
+      {exampleExist && (
         <div className="mb-6">
           <h3 className="text-lg font-semibold text-white mb-2">
             {t('problem.examples')}
