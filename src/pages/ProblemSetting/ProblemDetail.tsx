@@ -3,22 +3,42 @@ import {
   PlusIcon,
   TrashIcon,
 } from '@heroicons/react/24/outline';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { EditorRef, MilkdownEditorWrapper } from '../../components/Editor';
 import { Problem } from './types';
 
+interface DisplayName {
+  language: string;
+  display_name: string;
+}
+
+interface ProblemDifficulty {
+  problem_difficulty_id: string;
+  display_names: DisplayName[];
+  color?: string;
+}
+
+interface ProblemDifficultiesResponse {
+  problem_difficulties: ProblemDifficulty[];
+}
+
 interface ProblemFormProps {
   problem: Problem | null;
+  isReadOnly?: boolean; // Add isReadOnly prop
   onSave: (problem: Problem) => void;
   onCancel: () => void;
 }
 
-const ProblemDetail = ({ problem, onSave, onCancel }: ProblemFormProps) => {
+const ProblemDetail = ({
+  problem,
+  isReadOnly = false,
+  onSave,
+  onCancel,
+}: ProblemFormProps) => {
   const { t } = useTranslation();
   const [title, setTitle] = useState<string>(problem?.details.title || '');
-
   const [language, setLanguage] = useState<string>(
     problem?.details.language || 'en-US',
   );
@@ -40,9 +60,57 @@ const ProblemDetail = ({ problem, onSave, onCancel }: ProblemFormProps) => {
   );
 
   const [submitDisabled, setSubmitDisabled] = useState<boolean>(false);
+  const [difficulties, setDifficulties] = useState<ProblemDifficulty[]>([]);
+  const [isLoadingDifficulties, setIsLoadingDifficulties] =
+    useState<boolean>(false);
+  const [errorLoadingDifficulties, setErrorLoadingDifficulties] =
+    useState<string>('');
+
+  useEffect(() => {
+    const fetchDifficulties = async () => {
+      setIsLoadingDifficulties(true);
+      setErrorLoadingDifficulties('');
+
+      try {
+        const response = await fetch('/api/problem-difficulties', {
+          headers: {
+            'ngrok-skip-browser-warning': 'abc',
+          },
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to load problem difficulties');
+        }
+
+        const data: ProblemDifficultiesResponse = await response.json();
+        setDifficulties(data.problem_difficulties || []);
+
+        // If no difficulty is selected and we have difficulties, select the first one
+        if (
+          !difficulty &&
+          data.problem_difficulties &&
+          data.problem_difficulties.length > 0
+        ) {
+          setDifficulty(data.problem_difficulties[0].problem_difficulty_id);
+        }
+      } catch (error) {
+        console.error('Error loading problem difficulties:', error);
+        setErrorLoadingDifficulties(
+          error instanceof Error
+            ? error.message
+            : 'Failed to load problem difficulties',
+        );
+      } finally {
+        setIsLoadingDifficulties(false);
+      }
+    };
+
+    fetchDifficulties();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleCancel = () => {
-    // TODO: confirmation required
     onCancel();
   };
 
@@ -63,7 +131,7 @@ const ProblemDetail = ({ problem, onSave, onCancel }: ProblemFormProps) => {
       problem_difficulty_id: difficulty,
       is_submitted: false,
       target_contest_id: contest,
-      comments: [],
+      comments: problem?.comments || [],
       created_at: problem?.created_at || new Date().toLocaleString(),
       updated_at: new Date().toLocaleString(),
     };
@@ -92,6 +160,28 @@ const ProblemDetail = ({ problem, onSave, onCancel }: ProblemFormProps) => {
     setSamples(newSamples);
   };
 
+  const getDifficultyName = (id: string): string => {
+    const found = difficulties.find((d) => d.problem_difficulty_id === id);
+
+    if (!found) return id;
+
+    const userLang = language;
+    const displayName = found.display_names.find(
+      (dn) => dn.language === userLang,
+    );
+
+    if (!displayName) {
+      const englishName = found.display_names.find(
+        (dn) => dn.language === 'en-US',
+      );
+      return englishName
+        ? englishName.display_name
+        : found.display_names[0]?.display_name || id;
+    }
+
+    return displayName.display_name;
+  };
+
   return (
     <div className="p-6 flex flex-col w-full overflow-y-auto">
       <div className="mb-6 flex items-center">
@@ -102,10 +192,13 @@ const ProblemDetail = ({ problem, onSave, onCancel }: ProblemFormProps) => {
         >
           <ArrowLeftIcon className="w-5 h-5 text-gray-200" />
         </button>
-        <h1 className="text-2xl font-bold text-white">Problem Detail</h1>
+        <h1 className="text-2xl font-bold text-white">
+          {isReadOnly ? 'View Problem' : 'Problem Detail'}
+        </h1>
       </div>
 
       <div className="bg-gray rounded-lg shadow p-6 bg-slate-800 shadow-slate-800">
+        {/* Title and Language */}
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div>
             <label className="block text-lg font-bold text-white mb-1">
@@ -118,6 +211,8 @@ const ProblemDetail = ({ problem, onSave, onCancel }: ProblemFormProps) => {
               onChange={(e) => setTitle(e.target.value)}
               className="text-white w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               placeholder="Enter problem title"
+              readOnly={isReadOnly}
+              disabled={isReadOnly}
             />
           </div>
           <div>
@@ -129,6 +224,7 @@ const ProblemDetail = ({ problem, onSave, onCancel }: ProblemFormProps) => {
               className="text-white w-full px-3 py-2.5 border border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               defaultValue={language}
               onChange={(e) => setLanguage(e.target.value)}
+              disabled={isReadOnly}
             >
               <option value="zh-CN" className="text-gray-400">
                 中文
@@ -140,6 +236,7 @@ const ProblemDetail = ({ problem, onSave, onCancel }: ProblemFormProps) => {
           </div>
         </div>
 
+        {/* Problem description fields */}
         <div className="mb-4">
           <label className="block text-lg font-bold text-white mb-1 mt-6">
             Background
@@ -182,37 +279,41 @@ const ProblemDetail = ({ problem, onSave, onCancel }: ProblemFormProps) => {
               <label className="block text-lg font-bold text-white">
                 Samples
               </label>
-              <button
-                type="button"
-                onClick={addSample}
-                className="flex items-center px-3 py-1 text-green-300 rounded-md hover:bg-green-900"
-              >
-                <PlusIcon className="w-4 h-4 mr-1" />
-                Add Sample
-              </button>
+              {!isReadOnly && (
+                <button
+                  type="button"
+                  onClick={addSample}
+                  className="flex items-center px-3 py-1 text-green-300 rounded-md hover:bg-green-900"
+                >
+                  <PlusIcon className="w-4 h-4 mr-1" />
+                  Add Sample
+                </button>
+              )}
             </div>
 
             {samples.map((sample, index) => (
               <div
-                key={`${sample.input}-${sample.output}`}
+                key={`sample-${sample.input}-${sample.output}`}
                 className="border border-slate-600 rounded-md p-4 mb-4 bg-slate-800"
               >
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="text-white font-semibold">
                     Sample #{index + 1}
                   </h3>
-                  <button
-                    type="button"
-                    onClick={() => removeSample(index)}
-                    disabled={samples.length === 1}
-                    className={`flex items-center px-2 py-1 rounded-md ${
-                      samples.length === 1
-                        ? 'text-gray-400 cursor-not-allowed'
-                        : 'text-red-400 hover:bg-red-900'
-                    }`}
-                  >
-                    <TrashIcon className="w-4 h-4" />
-                  </button>
+                  {!isReadOnly && (
+                    <button
+                      type="button"
+                      onClick={() => removeSample(index)}
+                      disabled={samples.length === 1}
+                      className={`flex items-center px-2 py-1 rounded-md ${
+                        samples.length === 1
+                          ? 'text-gray-400 cursor-not-allowed'
+                          : 'text-red-400 hover:bg-red-900'
+                      }`}
+                    >
+                      <TrashIcon className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
 
                 <div className="flex justify-between items-start gap-4 w-full">
@@ -227,6 +328,8 @@ const ProblemDetail = ({ problem, onSave, onCancel }: ProblemFormProps) => {
                       }
                       className="text-white w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                       rows={4}
+                      readOnly={isReadOnly}
+                      disabled={isReadOnly}
                     />
                   </div>
                   <div className="w-1/2">
@@ -240,6 +343,8 @@ const ProblemDetail = ({ problem, onSave, onCancel }: ProblemFormProps) => {
                       }
                       className="text-white w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                       rows={4}
+                      readOnly={isReadOnly}
+                      disabled={isReadOnly}
                     />
                   </div>
                 </div>
@@ -251,16 +356,36 @@ const ProblemDetail = ({ problem, onSave, onCancel }: ProblemFormProps) => {
         <div className="grid grid-cols-2 gap-4 mt-6 mb-4">
           <div>
             <label className="block text-lg font-bold text-white mb-1">
-              Problem Difficulty ID
+              Problem Difficulty
             </label>
-            <input
-              type="text"
-              id="problem_difficulty_id"
-              value={difficulty}
-              onChange={(e) => setDifficulty(e.target.value)}
-              className="text-white w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Enter difficulty ID"
-            />
+            {isLoadingDifficulties ? (
+              <div className="text-white opacity-70">
+                Loading difficulties...
+              </div>
+            ) : errorLoadingDifficulties ? (
+              <div className="text-red-400">{errorLoadingDifficulties}</div>
+            ) : (
+              <select
+                id="problem_difficulty_id"
+                value={difficulty}
+                onChange={(e) => setDifficulty(e.target.value)}
+                className="text-white w-full px-3 py-2.5 border border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                disabled={isReadOnly}
+              >
+                {difficulties.length === 0 ? (
+                  <option value="">No difficulties available</option>
+                ) : (
+                  difficulties.map((d) => (
+                    <option
+                      key={d.problem_difficulty_id}
+                      value={d.problem_difficulty_id}
+                    >
+                      {getDifficultyName(d.problem_difficulty_id)}
+                    </option>
+                  ))
+                )}
+              </select>
+            )}
           </div>
           <div>
             <label className="block text-lg font-bold text-white mb-1">
@@ -273,46 +398,29 @@ const ProblemDetail = ({ problem, onSave, onCancel }: ProblemFormProps) => {
               onChange={(e) => setContest(e.target.value)}
               className="text-white w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               placeholder="Enter target contest ID"
+              readOnly={isReadOnly}
+              disabled={isReadOnly}
             />
           </div>
         </div>
 
-        <div className="mb-4">
-          <label className="block text-lg font-bold text-white mt-6 mb-1">
-            Comments
-          </label>
-          <div>
-            {problem?.comments.map((comment, index) => (
-              <div
-                key={comment}
-                className="border border-slate-600 rounded-md p-4 mb-2 bg-slate-800"
-              >
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className="text-white font-semibold">
-                    Comment #{index + 1}
-                  </h3>
-                </div>
-                <p className="text-white">{comment}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
         <div className="flex justify-end space-x-3 mt-6">
-          <button
-            type="submit"
-            onClick={handleSubmit}
-            disabled={submitDisabled}
-            className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg text-white disabled:opacity-50"
-          >
-            {t('problemDetail.save')}
-          </button>
+          {!isReadOnly ? (
+            <button
+              type="submit"
+              onClick={handleSubmit}
+              disabled={submitDisabled || isLoadingDifficulties}
+              className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg text-white disabled:opacity-50"
+            >
+              {t('problemDetail.save')}
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={onCancel}
             className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-white ml-2"
           >
-            {t('problemDetail.cancel')}
+            {isReadOnly ? t('problemDetail.back') : t('problemDetail.cancel')}
           </button>
         </div>
       </div>

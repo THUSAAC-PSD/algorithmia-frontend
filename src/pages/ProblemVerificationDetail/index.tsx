@@ -3,7 +3,6 @@ import {
   ChatBubbleLeftRightIcon,
   CheckCircleIcon,
   PencilIcon,
-  XCircleIcon,
 } from '@heroicons/react/24/outline';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -27,49 +26,79 @@ const ProblemVerificationDetail = () => {
     const fetchProblem = async () => {
       setIsLoading(true);
       try {
-        // TODO: Replace with actual API call
-        // For now, we'll create mock data based on the IProblem interface
-        const mockProblem: IProblem = {
-          id: id || 'unknown',
-          problem_difficulty: [{ language: 'en', display_name: 'Medium' }],
+        // Fetch the problem details from the API
+        const response = await fetch(`/api/problems/${id}`, {
+          method: 'GET',
+          mode: 'cors',
+          headers: {
+            'ngrok-skip-browser-warning': 'abc',
+          },
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            (await response.json()).message || 'Failed to load problem details',
+          );
+        }
+
+        const data = await response.json();
+
+        const latestVersion = data.problem.versions[0];
+
+        const detailsObj =
+          Array.isArray(latestVersion.details) &&
+          latestVersion.details.length > 0
+            ? latestVersion.details.find(
+                (d: { language: string }) => d.language === 'en-US',
+              ) || latestVersion.details[0]
+            : {
+                language: 'en-US',
+                title: '',
+                background: '',
+                statement: '',
+                input_format: '',
+                output_format: '',
+                note: '',
+              };
+
+        // Transform problem_difficulty to match IProblem format
+        const difficultyObj = latestVersion.problem_difficulty;
+        const mappedDifficulty = difficultyObj?.display_names?.map(
+          (d: { language: string; display_name: string }) => ({
+            language: d.language,
+            display_name: d.display_name,
+          }),
+        ) || [{ language: 'en-US', display_name: 'Unknown' }];
+
+        // Convert to our internal IProblem format
+        const convertedProblem: IProblem = {
+          id: data.problem.problem_id,
+          problem_difficulty: mappedDifficulty,
           details: [
             {
-              language: 'en',
-              title: 'Two Sum',
-              background:
-                'This problem tests your ability to use hash maps efficiently.',
-              statement:
-                'Given an array of integers `nums` and an integer `target`, return indices of the two numbers such that they add up to `target`.\n\nYou may assume that each input would have exactly one solution, and you may not use the same element twice.',
-              input_format:
-                'First line contains an integer `n` (2 ≤ n ≤ 10^4) — the length of the array.\nSecond line contains `n` integers `nums[i]` (-10^9 ≤ nums[i] ≤ 10^9).\nThird line contains a single integer `target` (-10^9 ≤ target ≤ 10^9).',
-              output_format:
-                'Return the indices of the two numbers that add up to the target, as an array of two integers, in increasing order.',
-              note: 'The solution must run in O(n) time complexity.',
+              language: detailsObj.language,
+              title: detailsObj.title,
+              background: detailsObj.background || '',
+              statement: detailsObj.statement || '',
+              input_format: detailsObj.input_format || '',
+              output_format: detailsObj.output_format || '',
+              note: detailsObj.note || '',
             },
           ],
-          examples: [
-            {
-              input: '4\n2 7 11 15\n9',
-              output: '0 1',
-            },
-            {
-              input: '3\n3 2 4\n6',
-              output: '1 2',
-            },
-          ],
+          examples: Array.isArray(latestVersion.examples)
+            ? latestVersion.examples
+            : [],
           is_submitted: true,
-          created_at: new Date('2025-04-22'),
-          updated_at: new Date('2025-04-22'),
-          author: 'Bob Johnson',
-          status: 'pending',
+          created_at: new Date(data.problem.created_at || Date.now()),
+          updated_at: new Date(data.problem.updated_at || Date.now()),
+          author: data.problem.creator?.username || 'Unknown',
+          status: data.problem.status || 'pending',
         };
 
-        // Simulate API delay
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        setProblem(mockProblem);
+        setProblem(convertedProblem);
       } catch (error) {
         console.error('Error fetching problem:', error);
-        // Handle error
       } finally {
         setIsLoading(false);
       }
@@ -92,27 +121,42 @@ const ProblemVerificationDetail = () => {
     const editorContent = editorRef.current?.getContent() || '';
 
     try {
-      // TODO: Replace with actual API call
-      console.log('Submitting feedback:', {
-        problemId: id,
-        status: selectedStatus,
-        feedback: editorContent,
-      });
-
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // Navigate back to the problem verification page
-      navigate('/problemverification', {
-        state: {
-          feedbackSubmitted: true,
-          problemId: id,
-          status: selectedStatus,
+      // Send feedback and status update to the server
+      const response = await fetch(`/api/problems/${id}/test-results`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'abc',
         },
+        credentials: 'include',
+        body: JSON.stringify({
+          comment: editorContent,
+          status: selectedStatus === 'approve' ? 'passed' : 'failed',
+        }),
       });
+
+      if (!response.ok) {
+        throw new Error(
+          (await response.json()).message || 'Failed to submit feedback',
+        );
+      }
+
+      // Update the problem status locally
+      if (problem) {
+        setProblem({
+          ...problem,
+          status: selectedStatus,
+        });
+      }
+
+      // Show success message and navigate back
+      alert(t('problemVerificationDetail.feedbackSubmitted'));
+      navigate('/problemverification');
     } catch (error) {
       console.error('Error submitting feedback:', error);
-      // Handle error
+      alert(
+        error instanceof Error ? error.message : 'Failed to submit feedback',
+      );
     }
   };
 
@@ -138,7 +182,7 @@ const ProblemVerificationDetail = () => {
 
   return (
     <div className="flex w-full bg-slate-900 overflow-auto">
-      <div className="max-w-5xl mx-auto px-6 py-8">
+      <div className="max-w-5xl mx-auto px-6 py-8 flex-1">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center">
             <button
@@ -181,36 +225,24 @@ const ProblemVerificationDetail = () => {
             <div className="flex space-x-4">
               <button
                 className={`flex items-center px-4 py-2 rounded-lg border ${
-                  selectedStatus === 'approved'
+                  selectedStatus === 'approve'
                     ? 'bg-green-500/20 text-green-300 border-green-500'
                     : 'bg-slate-700 text-slate-300 border-slate-600 hover:bg-slate-600'
                 }`}
                 type="button"
-                onClick={() => handleStatusSelect('approved')}
+                onClick={() => handleStatusSelect('approve')}
               >
                 <CheckCircleIcon className="w-5 h-5 mr-2" />
                 {t('problemVerificationDetail.approve')}
               </button>
               <button
                 className={`flex items-center px-4 py-2 rounded-lg border ${
-                  selectedStatus === 'rejected'
-                    ? 'bg-red-500/20 text-red-300 border-red-500'
-                    : 'bg-slate-700 text-slate-300 border-slate-600 hover:bg-slate-600'
-                }`}
-                type="button"
-                onClick={() => handleStatusSelect('rejected')}
-              >
-                <XCircleIcon className="w-5 h-5 mr-2" />
-                {t('problemVerificationDetail.reject')}
-              </button>
-              <button
-                className={`flex items-center px-4 py-2 rounded-lg border ${
-                  selectedStatus === 'needs_changes'
+                  selectedStatus === 'needs_revision'
                     ? 'bg-orange-500/20 text-orange-300 border-orange-500'
                     : 'bg-slate-700 text-slate-300 border-slate-600 hover:bg-slate-600'
                 }`}
                 type="button"
-                onClick={() => handleStatusSelect('needs_changes')}
+                onClick={() => handleStatusSelect('needs_revision')}
               >
                 <PencilIcon className="w-5 h-5 mr-2" />
                 {t('problemVerificationDetail.requestChanges')}
@@ -223,14 +255,8 @@ const ProblemVerificationDetail = () => {
               {t('problemVerificationDetail.feedbackComments')}
             </h3>
             <div className="bg-slate-700 border border-slate-600 rounded-lg overflow-hidden">
-              <div
-                style={{ minHeight: '200px' }}
-                className="prose prose-invert max-w-none"
-              >
-                <MilkdownEditorWrapper
-                  ref={editorRef}
-                  defaultValue={problem.details[0].statement}
-                />
+              <div className="prose prose-invert max-w-none">
+                <MilkdownEditorWrapper ref={editorRef} />
               </div>
             </div>
           </div>

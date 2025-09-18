@@ -1,6 +1,7 @@
 import {
   ArrowLeftIcon,
   CheckCircleIcon,
+  CheckIcon,
   XCircleIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
@@ -9,60 +10,11 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import Problem, { IProblem } from '../../components/Problem';
 
-// Mock interface for reviewer users
-interface Reviewer {
+// Mock interface for tester users
+interface Tester {
   user_id: string;
   username: string;
-  email: string;
 }
-
-// Notification component
-const Notification = ({
-  message,
-  type = 'success',
-  onClose,
-}: {
-  message: string;
-  type?: 'success' | 'error' | 'info';
-  onClose: () => void;
-}) => {
-  const bgColor =
-    type === 'success'
-      ? 'bg-green-500/20'
-      : type === 'error'
-        ? 'bg-red-500/20'
-        : 'bg-blue-500/20';
-
-  const textColor =
-    type === 'success'
-      ? 'text-green-300'
-      : type === 'error'
-        ? 'text-red-300'
-        : 'text-blue-300';
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      onClose();
-    }, 5000); // Auto-dismiss after 5 seconds
-
-    return () => clearTimeout(timer);
-  }, [onClose]);
-
-  return (
-    <div
-      className={`fixed top-4 right-4 flex items-center ${bgColor} ${textColor} px-4 py-3 rounded-lg shadow-lg`}
-    >
-      <span>{message}</span>
-      <button
-        onClick={onClose}
-        className="ml-4 text-slate-300 hover:text-white"
-        type="button"
-      >
-        <XMarkIcon className="w-5 h-5" />
-      </button>
-    </div>
-  );
-};
 
 const ProblemReviewDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -70,10 +22,10 @@ const ProblemReviewDetail = () => {
   const location = useLocation();
   const [problem, setProblem] = useState<IProblem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [decision, setDecision] = useState<'accept' | 'reject' | null>(null);
-  const [rejectionReason, setRejectionReason] = useState('');
-  const [selectedReviewer, setSelectedReviewer] = useState<string>('');
-  const [availableReviewers, setAvailableReviewers] = useState<Reviewer[]>([]);
+  const [decision, setDecision] = useState<'approve' | 'reject' | null>(null);
+  const [selectedTester, setSelectedTester] = useState<string>('');
+  const [assignedTesters, setAssignedTesters] = useState<string[]>([]);
+  const [availableTesters, setAvailableTesters] = useState<Tester[]>([]);
   const [notification, setNotification] = useState<{
     message: string;
     type: 'success' | 'error' | 'info';
@@ -99,58 +51,112 @@ const ProblemReviewDetail = () => {
     const fetchProblem = async () => {
       setIsLoading(true);
       try {
-        // TODO: Replace with actual API call
-        const mockProblem: IProblem = {
-          id: id || 'unknown',
-          problem_difficulty: [{ language: 'en', display_name: 'Hard' }],
+        const response = await fetch(`/api/problems/${id}`, {
+          method: 'GET',
+          mode: 'cors',
+          headers: {
+            'ngrok-skip-browser-warning': 'abc',
+          },
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            (await response.json()).message || 'Failed to load problem details',
+          );
+        }
+
+        const data = await response.json();
+        setAssignedTesters(
+          data.problem.testers.map((tester: Tester) => tester.user_id) || [],
+        );
+        const latestVersion = data.problem.versions[0]; // Assuming versions are sorted with newest first
+
+        // Get the English details or fallback to first available
+        const detailsObj =
+          Array.isArray(latestVersion.details) &&
+          latestVersion.details.length > 0
+            ? latestVersion.details.find(
+                (d: { language: string }) => d.language === 'en-US',
+              ) || latestVersion.details[0]
+            : {
+                language: 'en-US',
+                title: '',
+                background: '',
+                statement: '',
+                input_format: '',
+                output_format: '',
+                note: '',
+              };
+
+        // Transform problem_difficulty to match IProblem format
+        const difficultyObj = latestVersion.problem_difficulty;
+        const mappedDifficulty = difficultyObj?.display_names?.map(
+          (d: { language: string; display_name: string }) => ({
+            language: d.language,
+            display_name: d.display_name,
+          }),
+        ) || [{ language: 'en-US', display_name: 'Unknown' }];
+
+        // Convert to our internal IProblem format
+        const convertedProblem: IProblem = {
+          id: data.problem.problem_id,
+          problem_difficulty: mappedDifficulty,
           details: [
             {
-              language: 'en',
-              title: 'Binary Tree Maximum Path Sum',
-              background:
-                'This problem tests your understanding of tree traversal and dynamic programming.',
-              statement:
-                "A path in a binary tree is a sequence of nodes where each pair of adjacent nodes in the sequence has an edge connecting them. A node can only appear in the sequence at most once. Note that the path does not need to pass through the root.\n\nThe path sum of a path is the sum of the node's values in the path.\n\nGiven the root of a binary tree, return the maximum path sum of any path.",
-              input_format:
-                'First line contains a serialized binary tree in level order traversal format.',
-              output_format:
-                'Return an integer representing the maximum path sum.',
-              note: 'The number of nodes in the tree is in the range [1, 3 * 10^4].',
+              language: detailsObj.language,
+              title: detailsObj.title,
+              background: detailsObj.background || '',
+              statement: detailsObj.statement || '',
+              input_format: detailsObj.input_format || '',
+              output_format: detailsObj.output_format || '',
+              note: detailsObj.note || '',
             },
           ],
-          examples: [
-            {
-              input: '[1,2,3]',
-              output: '6',
-            },
-            {
-              input: '[-10,9,20,null,null,15,7]',
-              output: '42',
-            },
-          ],
+          examples: Array.isArray(latestVersion.examples)
+            ? latestVersion.examples
+            : [],
           is_submitted: true,
-          created_at: new Date('2025-04-28'),
-          updated_at: new Date('2025-04-28'),
-          author: 'John Doe',
-          status: 'pending',
+          created_at: new Date(data.problem.created_at || Date.now()),
+          updated_at: new Date(data.problem.updated_at || Date.now()),
+          author: data.problem.creator?.username || 'Unknown',
+          status: data.problem.status || 'pending_review',
         };
+        setProblem(convertedProblem);
 
-        // Simulate API delay
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        setProblem(mockProblem);
+        try {
+          const testersResponse = await fetch('/api/testers', {
+            method: 'GET',
+            mode: 'cors',
+            headers: {
+              'ngrok-skip-browser-warning': 'abc',
+            },
+            credentials: 'include',
+          });
 
-        // Fetch available reviewers (mock data)
-        const mockReviewers: Reviewer[] = [
-          { user_id: '1', username: 'Alex Johnson', email: 'alex@example.com' },
-          { user_id: '2', username: 'Emma Wilson', email: 'emma@example.com' },
-          {
-            user_id: '3',
-            username: 'Michael Brown',
-            email: 'michael@example.com',
-          },
-          { user_id: '4', username: 'Sophia Lee', email: 'sophia@example.com' },
-        ];
-        setAvailableReviewers(mockReviewers);
+          if (testersResponse.ok) {
+            const data = await testersResponse.json();
+            console.log(data);
+            const testersData = data.testers || [];
+            const mappedTesters: Tester[] = Array.isArray(testersData)
+              ? testersData.map((item: Tester) => ({
+                  user_id: item.user_id,
+                  username: item.username,
+                }))
+              : [];
+
+            if (mappedTesters.length > 0) {
+              setAvailableTesters(mappedTesters);
+            } else {
+              throw new Error('No testers found');
+            }
+          } else {
+            throw new Error('Failed to fetch testers');
+          }
+        } catch (error) {
+          console.error('Error fetching testers:', error);
+          setAvailableTesters([]);
+        }
       } catch (error) {
         console.error('Error fetching problem:', error);
         setNotification({
@@ -175,17 +181,9 @@ const ProblemReviewDetail = () => {
       return;
     }
 
-    if (decision === 'reject' && !rejectionReason.trim()) {
+    if (decision === 'approve' && assignedTesters.length === 0) {
       setNotification({
-        message: 'Please provide a reason for rejection',
-        type: 'error',
-      });
-      return;
-    }
-
-    if (decision === 'accept' && !selectedReviewer) {
-      setNotification({
-        message: 'Please select a reviewer',
+        message: 'Please assign at least one tester',
         type: 'error',
       });
       return;
@@ -198,22 +196,47 @@ const ProblemReviewDetail = () => {
         type: 'info',
       });
 
-      // Simulate API call
-      console.log('Submitting decision:', {
-        problemId: id,
-        decision,
-        comment: decisionComment,
-        rejectionReason: rejectionReason || null,
-        reviewerId: selectedReviewer || null,
+      const assign_testers = await fetch(`/api/problems/${id}/testers`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'abc',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          problem_id: id,
+          tester_ids: assignedTesters,
+        }),
+      });
+      if (!assign_testers.ok) {
+        throw new Error(
+          (await assign_testers.json()).message || 'Failed to assign testers',
+        );
+      }
+
+      const response = await fetch(`/api/problems/${id}/reviews`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'abc',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          decision,
+          comment: decisionComment,
+        }),
       });
 
-      // Mock delay for API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      if (!response.ok) {
+        throw new Error(
+          (await response.json()).message || 'Failed to submit decision',
+        );
+      }
 
       // Navigate back to problem review list
       navigate('/problemreview', {
         state: {
-          notification: `Problem successfully ${decision === 'accept' ? 'accepted' : 'rejected'}`,
+          notification: `Problem successfully ${decision === 'approve' ? 'accepted' : 'rejected'}`,
           notificationType: 'success',
         },
       });
@@ -226,8 +249,45 @@ const ProblemReviewDetail = () => {
     }
   };
 
-  const closeNotification = () => {
-    setNotification(null);
+  // Handle marking a problem as completed
+  const handleMarkAsCompleted = async () => {
+    try {
+      // Show processing notification
+      setNotification({
+        message: 'Marking problem as completed...',
+        type: 'info',
+      });
+
+      const response = await fetch(`/api/problems/${id}/complete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'abc',
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          (await response.json()).message ||
+            'Failed to mark problem as completed',
+        );
+      }
+
+      // Navigate back to problem review list
+      navigate('/problemreview', {
+        state: {
+          notification: 'Problem successfully marked as completed',
+          notificationType: 'success',
+        },
+      });
+    } catch (error) {
+      console.error('Error marking problem as completed:', error);
+      setNotification({
+        message: 'Failed to mark problem as completed. Please try again.',
+        type: 'error',
+      });
+    }
   };
 
   if (isLoading) {
@@ -249,14 +309,26 @@ const ProblemReviewDetail = () => {
   return (
     <div className="flex w-full bg-slate-900 overflow-auto">
       {notification && (
-        <Notification
-          message={notification.message}
-          type={notification.type}
-          onClose={closeNotification}
-        />
+        <div
+          className={`fixed top-4 right-4 z-50 px-6 py-4 rounded shadow-lg flex items-center space-x-3
+          ${notification.type === 'success' ? 'bg-green-700 text-green-100' : ''}
+          ${notification.type === 'error' ? 'bg-red-700 text-red-100' : ''}
+          ${notification.type === 'info' ? 'bg-blue-700 text-blue-100' : ''}
+        `}
+        >
+          <span>{notification.message}</span>
+          <button
+            className="ml-2 text-white hover:text-slate-200"
+            onClick={() => setNotification(null)}
+            aria-label="Close notification"
+            type="button"
+          >
+            <XMarkIcon className="w-5 h-5" />
+          </button>
+        </div>
       )}
 
-      <div className="max-w-5xl mx-auto px-6 py-8">
+      <div className="max-w-5xl mx-auto px-6 py-8 flex-1">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center">
             <button
@@ -285,12 +357,12 @@ const ProblemReviewDetail = () => {
             <div className="flex space-x-4">
               <button
                 className={`flex items-center px-4 py-2 rounded-lg border ${
-                  decision === 'accept'
+                  decision === 'approve'
                     ? 'bg-green-500/20 text-green-300 border-green-500'
                     : 'bg-slate-700 text-slate-300 border-slate-600 hover:bg-slate-600'
                 }`}
                 type="button"
-                onClick={() => setDecision('accept')}
+                onClick={() => setDecision('approve')}
               >
                 <CheckCircleIcon className="w-5 h-5 mr-2" />
                 Accept
@@ -325,51 +397,84 @@ const ProblemReviewDetail = () => {
             </div>
           )}
 
-          {decision === 'accept' && (
+          {decision === 'approve' && (
             <div className="mb-6">
               <h3 className="text-lg font-semibold text-white mb-3">
-                Assign Reviewer
+                Assign Tester(s)
               </h3>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-slate-300 mb-1">
-                  Select Reviewer
-                </label>
+              <div className="flex items-center mb-4">
                 <select
-                  className="w-full rounded-md border-0 bg-slate-700 py-2 px-3 text-slate-300 focus:ring-1 focus:ring-indigo-500"
-                  value={selectedReviewer}
-                  onChange={(e) => setSelectedReviewer(e.target.value)}
+                  className="flex-1 rounded-md border-0 bg-slate-700 py-2 px-3 text-slate-300 focus:ring-1 focus:ring-indigo-500"
+                  value={selectedTester}
+                  onChange={(e) => setSelectedTester(e.target.value)}
                 >
-                  <option value="">-- Select a reviewer --</option>
-                  {availableReviewers.map((reviewer) => (
-                    <option key={reviewer.user_id} value={reviewer.user_id}>
-                      {reviewer.username} ({reviewer.email})
+                  <option value="">-- Select a tester --</option>
+                  {availableTesters.map((tester) => (
+                    <option key={tester.user_id} value={tester.user_id}>
+                      {tester.username}
                     </option>
                   ))}
                 </select>
+                <button
+                  className="ml-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded"
+                  type="button"
+                  onClick={() => {
+                    if (
+                      selectedTester &&
+                      !assignedTesters.includes(selectedTester)
+                    ) {
+                      setAssignedTesters([...assignedTesters, selectedTester]);
+                    }
+                    setSelectedTester('');
+                  }}
+                >
+                  Add
+                </button>
               </div>
+              {assignedTesters.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {assignedTesters.map((testerId) => {
+                    const tester = availableTesters.find(
+                      (t) => t.user_id === testerId,
+                    );
+                    return (
+                      <div
+                        key={testerId}
+                        className="flex items-center bg-slate-800 text-slate-300 px-3 py-1 rounded-full"
+                      >
+                        <span>{tester ? tester.username : testerId}</span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setAssignedTesters(
+                              assignedTesters.filter((id) => id !== testerId),
+                            )
+                          }
+                          className="ml-2 text-red-500 hover:text-red-400"
+                        >
+                          <XMarkIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 
-          {decision === 'reject' && (
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold text-white mb-3">
-                Rejection Reason
-              </h3>
-              <textarea
-                className="w-full p-4 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                rows={4}
-                placeholder="Provide a detailed reason for rejecting this problem..."
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-              ></textarea>
-              <div className="mt-2 text-xs text-slate-400">
-                This reason will be used internally and not directly shared with
-                the author.
-              </div>
-            </div>
-          )}
-
-          <div className="flex justify-end">
+          <div className="flex justify-end space-x-3">
+            {problem && problem.status === 'approve' && (
+              <button
+                className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                onClick={handleMarkAsCompleted}
+                type="button"
+              >
+                <div className="flex items-center">
+                  <CheckIcon className="w-5 h-5 mr-2" />
+                  Mark as Completed
+                </div>
+              </button>
+            )}
             <button
               className={`px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors ${
                 !decision ? 'opacity-50 cursor-not-allowed' : ''

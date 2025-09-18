@@ -20,7 +20,11 @@
   },
   "problemDetail": {
     "save": "Save",
-    "cancel": "Cancel"
+    "cancel": "Cancel", 
+    "back": "Back",
+    "editProblem": "Edit Problem",
+    "createProblem": "Create Problem", 
+    "viewProblem": "View Problem"
   },
   "problemSetting": {
     "title": "Problems & Submissions",
@@ -40,16 +44,29 @@
     "createdAt": "Created At",
     "updatedAt": "Last Modified",
     "status": "Status",
+    "type": "Type", 
     "actions": "Actions",
     "modify": "Modify",
+    "view": "View",
     "submitted": "Submitted",
+    "published": "Published",
     "delete": "Delete",
     "chat": "Chat",
     "draft": "Draft",
+    "draftType": "Draft",
+    "publishedType": "Published",
     "submit": "Submit",
-    "noProblem": "No problem found"
+    "noProblem": "No problem found",
+    "pending_review": "Pending Review",
+    "rejected": "Rejected",
+    "needs_revision": "Needs Revision",
+    "completed": "Completed",
+    "awaiting_final_check": "Awaiting Final Check"
   },
   "problemVerification": {
+    "openChat": "Open Chat",
+    "oldest": "Oldest",
+    "sortBy": "Sort By",
     "title": "Problem Verification",
     "statuses": {
       "pending": "Pending",
@@ -84,15 +101,20 @@
     "feedbackComments": "Feedback Comments",
     "feedbackPlaceholder": "Provide detailed feedback for the problem author...",
     "submitFeedback": "Submit Feedback",
-    "selectStatusAlert": "Please select a status for this problem"
+    "selectStatusAlert": "Please select a status for this problem",
+    "feedbackSubmitted": "Feedback submitted successfully"
   },
   "problemReview": {
+    "openChat": "Open Chat",
+    "oldest": "Oldest",
+    "sortBy": "Sort By",
     "title": "Problem Review",
     "statuses": {
       "pending": "Pending",
       "approved": "Approved",
       "rejected": "Rejected",
-      "needsChanges": "Needs Changes"
+      "needsChanges": "Needs Changes",
+      "approvedForTesting": "Approved for Test"
     },
     "newestFirst": "Newest First",
     "oldestFirst": "Oldest First",
@@ -227,6 +249,7 @@
   "common": {
     "cancel": "Cancel",
     "close": "Close",
-    "done": "Done"
+    "done": "Done",
+    "loading": "Loading..."
   }
 }

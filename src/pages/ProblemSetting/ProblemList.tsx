@@ -1,19 +1,48 @@
+import { format, isToday, isYesterday } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 
-import { Problem } from './types';
+import { CombinedProblemListItem, ProblemType } from './types';
+
+const formatTimestamp = (timestamp: string): string => {
+  try {
+    const date = new Date(timestamp);
+
+    if (isNaN(date.getTime())) {
+      const match = timestamp.match(/(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})/);
+      if (match) {
+        const [, datePart, timePart] = match;
+        return `${datePart} ${timePart}`;
+      }
+      return timestamp;
+    }
+
+    if (isToday(date)) {
+      return `Today, ${format(date, 'HH:mm')}`;
+    } else if (isYesterday(date)) {
+      return `Yesterday, ${format(date, 'HH:mm')}`;
+    } else {
+      return format(date, 'yyyy-MM-dd HH:mm');
+    }
+  } catch (error) {
+    console.error('Error formatting timestamp:', error);
+    return timestamp; // Return original if formatting fails
+  }
+};
 
 interface ProblemListProps {
-  problems: Problem[];
-  onProblemClick: (id: string) => void;
-  onDeleteProblem: (id: string) => void;
+  problems: CombinedProblemListItem[];
+  onProblemClick: (id: string, type: ProblemType) => void;
+  onDeleteProblem: (id: string, type: ProblemType) => void;
   onSubmitProblem: (id: string) => void;
   onAddNewProblem: () => void;
   onNavigateToChat: (id: string) => void;
   searchTerm: string;
-  sortColumn: keyof Problem | null;
+  sortColumn: keyof CombinedProblemListItem | null;
   sortDirection: 'asc' | 'desc';
-  onSort: (column: keyof Problem) => void;
-  renderSortIndicator: (column: keyof Problem) => React.ReactNode;
+  onSort: (column: keyof CombinedProblemListItem) => void;
+  renderSortIndicator: (
+    column: keyof CombinedProblemListItem,
+  ) => React.ReactNode;
 }
 
 const ProblemList: React.FC<ProblemListProps> = ({
@@ -30,14 +59,14 @@ const ProblemList: React.FC<ProblemListProps> = ({
 
   // Define sortable columns
   const sortableColumns: Array<{
-    key: keyof Problem;
+    key: keyof CombinedProblemListItem;
     label: string;
-    accessor: (problem: Problem) => string;
+    accessor: (problem: CombinedProblemListItem) => string;
   }> = [
     {
-      key: 'details',
+      key: 'title',
       label: t('problemList.title'),
-      accessor: (p) => p.details.title,
+      accessor: (p) => p.title,
     },
     {
       key: 'created_at',
@@ -50,10 +79,9 @@ const ProblemList: React.FC<ProblemListProps> = ({
       accessor: (p) => p.updated_at,
     },
     {
-      key: 'is_submitted',
+      key: 'status',
       label: t('problemList.status'),
-      accessor: (p) =>
-        p.is_submitted ? t('problemList.submitted') : t('problemList.draft'),
+      accessor: (p) => p.status,
     },
   ];
 
@@ -100,65 +128,80 @@ const ProblemList: React.FC<ProblemListProps> = ({
             <tbody className="divide-y divide-slate-700 bg-slate-800">
               {problems.map((problem) => (
                 <tr
-                  key={problem.problem_draft_id}
+                  key={`${problem.type}-${problem.id}`}
                   className="hover:bg-slate-700"
                 >
                   <td
                     className="px-6 py-4 text-sm text-white font-medium cursor-pointer"
-                    onClick={() => onProblemClick(problem.problem_draft_id)}
+                    onClick={() => onProblemClick(problem.id, problem.type)}
                   >
-                    {problem.details.title}
+                    {problem.title}
                   </td>
                   <td className="px-6 py-4 text-sm text-slate-400">
-                    {problem.created_at}
+                    {formatTimestamp(problem.created_at)}
                   </td>
                   <td className="px-6 py-4 text-sm text-slate-400">
-                    {problem.updated_at}
+                    {formatTimestamp(problem.updated_at)}
                   </td>
                   <td className="px-6 py-4 text-sm">
                     <span
                       className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        problem.is_submitted
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-yellow-100 text-yellow-800'
+                        problem.status === 'draft'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : problem.status === 'submitted'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-blue-100 text-blue-800'
                       }`}
                     >
-                      {problem.is_submitted
-                        ? t('problemList.submitted')
-                        : t('problemList.draft')}
+                      {t(`problemList.${problem.status}`)}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-sm flex space-x-2">
-                    {!problem.is_submitted && (
+                    {(problem.status === 'draft' ||
+                      problem.status === 'needs_revision') && (
                       <button
-                        onClick={() =>
-                          onSubmitProblem(problem.problem_draft_id)
-                        }
+                        onClick={() => onSubmitProblem(problem.id)}
                         className="px-3 py-1 bg-indigo-500 hover:bg-indigo-600 rounded text-white text-xs"
                         type="button"
                       >
                         {t('problemList.submit')}
                       </button>
                     )}
-                    <button
-                      onClick={() => onProblemClick(problem.problem_draft_id)}
-                      className="px-3 py-1 bg-blue-500 hover:bg-blue-600 rounded text-white text-xs"
-                      type="button"
-                    >
-                      {t('problemList.modify')}
-                    </button>
-                    <button
-                      onClick={() => onDeleteProblem(problem.problem_draft_id)}
-                      className="px-3 py-1 bg-red-500 hover:bg-red-600 rounded text-white text-xs"
-                      type="button"
-                    >
-                      {t('problemList.delete')}
-                    </button>
-                    {problem.is_submitted && (
+                    {problem.type === 'draft' && (
+                      <>
+                        <button
+                          onClick={() =>
+                            onProblemClick(problem.id, problem.type)
+                          }
+                          className="px-3 py-1 bg-blue-500 hover:bg-blue-600 rounded text-white text-xs"
+                          type="button"
+                        >
+                          {t('problemList.modify')}
+                        </button>
+                        <button
+                          onClick={() =>
+                            onDeleteProblem(problem.id, problem.type)
+                          }
+                          className="px-3 py-1 bg-red-500 hover:bg-red-600 rounded text-white text-xs"
+                          type="button"
+                        >
+                          {t('problemList.delete')}
+                        </button>
+                      </>
+                    )}
+                    {problem.type === 'published' && (
                       <button
-                        onClick={() =>
-                          onNavigateToChat(problem.problem_draft_id)
-                        }
+                        onClick={() => onProblemClick(problem.id, problem.type)}
+                        className="px-3 py-1 bg-blue-500 hover:bg-blue-600 rounded text-white text-xs"
+                        type="button"
+                      >
+                        {t('problemList.view')}
+                      </button>
+                    )}
+                    {(problem.status === 'submitted' ||
+                      problem.type === 'published') && (
+                      <button
+                        onClick={() => onNavigateToChat(problem.id)}
                         className="px-3 py-1 bg-green-500 hover:bg-green-600 rounded text-white text-xs"
                         type="button"
                       >

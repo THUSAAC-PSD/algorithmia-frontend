@@ -8,6 +8,44 @@ export interface Problem {
   comments: string[];
   created_at: string;
   updated_at: string;
+  status?: string;
+}
+
+export interface PublishedProblem {
+  problem_id: string;
+  title: {
+    language: string;
+    title: string;
+  }[];
+  status: string;
+  creator?: {
+    user_id: string;
+    username: string;
+  };
+  reviewer?: {
+    user_id: string;
+    username: string;
+  };
+  testers?: {
+    user_id: string;
+    username: string;
+  }[];
+  target_contest: null | unknown;
+  assigned_contest: null | unknown;
+  problem_difficulty: {
+    problem_difficulty_id: string;
+    display_names: {
+      language: string;
+      display_name: string;
+    }[];
+  };
+  created_at: string;
+  updated_at: string;
+
+  // Will be populated after fetching details
+  details?: ProblemDetails;
+  examples?: ProblemExample[];
+  comments?: string[];
 }
 
 export interface ProblemDetails {
@@ -26,3 +64,15 @@ export interface ProblemExample {
 }
 
 export type ViewType = 'list' | 'detail';
+
+export type ProblemType = 'draft' | 'published';
+
+export interface CombinedProblemListItem {
+  id: string;
+  type: ProblemType;
+  title: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  originalProblem: Problem | PublishedProblem;
+}

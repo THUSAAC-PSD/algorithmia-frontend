@@ -65,18 +65,25 @@ const SectionDivider = ({ title }: { title: string }) => (
 
 const Home = () => {
   const { t } = useTranslation();
-  const [userRole, setUserRole] = useState('');
+  const [userRoles, setUserRoles] = useState<string[]>([]);
 
   useEffect(() => {
-    // TODO: Replace with actual API call to get user role
+    // Get user roles from localStorage
     const loggedIn = localStorage.getItem('isLoggedIn') === 'true';
-    const role = loggedIn ? localStorage.getItem('userRole') : '';
-    setUserRole(role || 'user');
+    if (loggedIn) {
+      const rolesString = localStorage.getItem('userRoles');
+      const roles = rolesString ? JSON.parse(rolesString) : [];
+      setUserRoles(roles);
+    } else {
+      setUserRoles([]);
+    }
   }, []);
-  const isVerifier = () => userRole === 'verifier' || isAdmin();
-  const isAdmin = () => userRole === 'admin' || userRole === 'super_admin';
-  const isSuperAdmin = () => userRole === 'super_admin';
-  const isReviewer = () => userRole === 'reviewer' || isAdmin();
+
+  const hasRole = (role: string) => userRoles.includes(role);
+  const isVerifier = () => hasRole('tester') || isAdmin();
+  const isAdmin = () => hasRole('admin') || hasRole('super_admin');
+  const isSuperAdmin = () => hasRole('super_admin');
+  const isReviewer = () => hasRole('reviewer') || isAdmin();
 
   const today = new Date();
   const formattedDate = today.toLocaleDateString(undefined, {
@@ -107,13 +114,15 @@ const Home = () => {
             </div>
             <div className="bg-indigo-500/10 p-3 rounded-lg border border-indigo-500/20 text-white">
               <p className="font-medium text-indigo-300">
-                {userRole === 'super_admin'
+                {userRoles.includes('super_admin')
                   ? t('home.roleSuperAdmin', 'Super Admin')
-                  : userRole === 'admin'
+                  : userRoles.includes('admin')
                     ? t('home.roleAdmin', 'Administrator')
-                    : userRole === 'verifier'
+                    : userRoles.includes('verifier')
                       ? t('home.roleVerifier', 'Verifier')
-                      : t('home.roleUser', 'User')}
+                      : userRoles.includes('reviewer')
+                        ? t('home.roleReviewer', 'Reviewer')
+                        : t('home.roleUser', 'User')}
               </p>
             </div>
           </div>

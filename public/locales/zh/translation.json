@@ -20,7 +20,11 @@
   },
   "problemDetail": {
     "save": "保存",
-    "cancel": "取消"
+    "cancel": "取消",
+    "back": "返回",
+    "editProblem": "编辑题目",
+    "createProblem": "创建题目", 
+    "viewProblem": "查看题目"
   },
   "problemSetting": {
     "title": "题目和提交",
@@ -40,16 +44,29 @@
     "createdAt": "创建时间",
     "updatedAt": "最后修改",
     "status": "状态",
+    "type": "类型", 
     "actions": "操作",
     "modify": "修改",
+    "view": "查看",
     "submitted": "已提交",
+    "published": "已发布",
     "delete": "删除",
     "chat": "交流",
     "draft": "草稿",
+    "draftType": "草稿",
+    "publishedType": "已发布",
     "submit": "提交",
-    "noProblem": "未找到题目"
+    "noProblem": "未找到题目",
+    "pending_review": "待审核",
+    "rejected": "已拒绝",
+    "needs_revision": "需要修改",
+    "completed": "已完成",
+    "awaiting_final_check": "等待最终检查"
   },
   "problemVerification": {
+    "openChat": "开启群聊",
+    "oldest": "最早",
+    "sortBy": "排序方式",
     "title": "验题",
     "statuses": {
       "pending": "待处理",
@@ -84,15 +101,20 @@
     "feedbackComments": "反馈评论",
     "feedbackPlaceholder": "为题目作者提供详细反馈...",
     "submitFeedback": "提交反馈",
-    "selectStatusAlert": "请为此题目选择一个状态"
+    "selectStatusAlert": "请为此题目选择一个状态",
+    "feedbackSubmitted": "已成功提交"
   },
   "problemReview": {
+    "openChat": "开启群聊",
+    "oldest": "最早",
+    "sortBy": "排序方式",
     "title": "题目审核",
     "statuses": {
       "pending": "待处理",
       "approved": "已批准",
       "rejected": "已拒绝",
-      "needsChanges": "需要修改"
+      "needsChanges": "需要修改",
+      "approvedForTesting": "已批准测试"
     },
     "newestFirst": "最新优先",
     "oldestFirst": "最早优先",
@@ -204,6 +226,7 @@
   },
   "common": {
     "cancel": "取消",
-    "close": "关闭"
+    "close": "关闭",
+    "loading": "加载中..."
   }
 }
