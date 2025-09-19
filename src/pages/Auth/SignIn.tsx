@@ -2,6 +2,8 @@ import { EnvelopeIcon, LockClosedIcon } from '@heroicons/react/24/outline';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
+import { API_BASE_URL } from '../../config';
+
 const SignIn = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -15,12 +17,13 @@ const SignIn = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/auth/login', {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': 'abc',
         },
+        credentials: 'include',
         body: JSON.stringify({
           username,
           password,
@@ -32,12 +35,13 @@ const SignIn = () => {
         localStorage.removeItem('userRoles');
         throw new Error('Invalid username or password');
       }
-      const current_user = await fetch('/api/users/current', {
+      const current_user = await fetch(`${API_BASE_URL}/users/current`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
           'ngrok-skip-browser-warning': 'abc',
         },
+        credentials: 'include',
       });
       if (!current_user.ok) {
         localStorage.removeItem('isLoggedIn');
@@ -48,6 +52,9 @@ const SignIn = () => {
       localStorage.setItem('isLoggedIn', 'true');
       localStorage.setItem('userRoles', JSON.stringify(data.user.roles || []));
       localStorage.setItem('userId', data.user.user_id);
+      if (data.user?.username || data.user?.email) {
+        localStorage.setItem('userName', data.user.username || data.user.email);
+      }
 
       navigate('/');
       window.location.reload();

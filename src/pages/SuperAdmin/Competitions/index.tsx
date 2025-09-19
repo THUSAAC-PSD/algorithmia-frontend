@@ -13,6 +13,8 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
+import { API_BASE_URL } from '../../../config';
+
 interface Competition {
   contest_id: string;
   title: string;
@@ -50,8 +52,7 @@ const CompetitionManagement = () => {
     const fetchCompetitions = async () => {
       setLoading(true);
       try {
-        const response = await fetch('/api/contests', {
-          method: 'GET',
+        const response = await fetch(`${API_BASE_URL}/contests`, {
           headers: {
             'ngrok-skip-browser-warning': 'abc',
           },
@@ -119,13 +120,16 @@ const CompetitionManagement = () => {
   const confirmDelete = async () => {
     if (competitionToDelete) {
       try {
-        const response = await fetch(`/api/contests/${competitionToDelete}`, {
-          method: 'DELETE',
-          headers: {
-            'ngrok-skip-browser-warning': 'abc',
+        const response = await fetch(
+          `${API_BASE_URL}/contests/${competitionToDelete}`,
+          {
+            method: 'DELETE',
+            headers: {
+              'ngrok-skip-browser-warning': 'abc',
+            },
+            credentials: 'include',
           },
-          credentials: 'include',
-        });
+        );
 
         if (!response.ok) {
           throw new Error('Failed to delete competition');
@@ -164,7 +168,7 @@ const CompetitionManagement = () => {
       if (currentCompetition) {
         // Update existing competition
         response = await fetch(
-          `/api/contests/${currentCompetition.contest_id}`,
+          `${API_BASE_URL}/contests/${currentCompetition.contest_id}`,
           {
             method: 'PUT',
             headers: {
@@ -177,7 +181,7 @@ const CompetitionManagement = () => {
         );
       } else {
         // Create new competition
-        response = await fetch('/api/contests', {
+        response = await fetch(`${API_BASE_URL}/contests`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -195,7 +199,7 @@ const CompetitionManagement = () => {
       }
 
       // Refresh the competitions list
-      const fetchResponse = await fetch('/api/contests', {
+      const fetchResponse = await fetch(`${API_BASE_URL}/contests`, {
         method: 'GET',
         headers: {
           'ngrok-skip-browser-warning': 'abc',

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 
+import { API_BASE_URL } from '../../config'; // added
 import ProblemDetail from './ProblemDetail';
 import ProblemList from './ProblemList';
 import {
@@ -11,6 +12,7 @@ import {
   ProblemExample,
   ProblemType,
   PublishedProblem,
+  SaveProblemPayload,
   ViewType,
 } from './types';
 
@@ -45,7 +47,7 @@ const ProblemSetting = () => {
       try {
         // Fetch problem drafts
         const [draftResponse, publishedResponse] = await Promise.all([
-          fetch(`/api/problem-drafts`, {
+          fetch(`${API_BASE_URL}/problem-drafts`, {
             method: 'GET',
             mode: 'cors',
             headers: {
@@ -53,7 +55,7 @@ const ProblemSetting = () => {
             },
             credentials: 'include',
           }),
-          fetch(`/api/problems`, {
+          fetch(`${API_BASE_URL}/problems`, {
             method: 'GET',
             mode: 'cors',
             headers: {
@@ -307,7 +309,7 @@ const ProblemSetting = () => {
                 setIsLoading(true);
                 const loadingToast = toast.loading('Deleting problem...');
 
-                fetch(`/api/problem-drafts/${id}`, {
+                fetch(`${API_BASE_URL}/problem-drafts/${id}`, {
                   method: 'DELETE',
                   headers: {
                     'Content-Type': 'application/json',
@@ -412,37 +414,104 @@ const ProblemSetting = () => {
       setIsLoading(true);
       const loadingToast = toast.loading('Submitting problem...');
 
-      const response = await fetch(`/api/problem-drafts/${id}/submit`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': 'abc',
+      const response = await fetch(
+        `${API_BASE_URL}/problem-drafts/${id}/submit`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'abc',
+          },
+          credentials: 'include',
         },
-        credentials: 'include',
-      });
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Failed to submit problem');
       }
+      const data = await response.json();
+      const newProblemId: string | undefined = data?.problem_id;
 
-      // Update the original drafts state
+      // Get current user info for creator attribution
+      const currentUserId = localStorage.getItem('userId') || '';
+      const currentUserName = localStorage.getItem('userName') || 'You';
+
+      // Find the just-submitted draft's title to carry over
+      const submittedListItem = combinedProblems.find(
+        (p) => p.id === id && p.type === 'draft',
+      );
+      const submittedTitle = submittedListItem?.title || '';
+      const nowIso = new Date().toISOString();
+
+      // Remove the draft from drafts
       setProblemDrafts(
-        problemDrafts.map((problem) =>
-          problem.problem_draft_id === id
-            ? { ...problem, is_submitted: true, type: 'published' }
-            : problem,
-        ),
+        problemDrafts.filter((problem) => problem.problem_draft_id !== id),
       );
 
-      // Update the combined problems state
-      setCombinedProblems(
-        combinedProblems.map((problem) =>
-          problem.id === id && problem.type === 'draft'
-            ? { ...problem, status: 'submitted', type: 'published' }
-            : problem,
-        ),
-      );
+      // Add a minimal published problem so it can be opened immediately
+      if (newProblemId) {
+        const minimalPublished: PublishedProblem = {
+          problem_id: newProblemId,
+          title: [{ language: 'en-US', title: submittedTitle }],
+          status: 'pending_review',
+          creator: { user_id: currentUserId, username: currentUserName },
+          reviewer: undefined,
+          testers: [],
+          target_contest: null,
+          assigned_contest: null,
+          problem_difficulty: {
+            problem_difficulty_id: '',
+            display_names: [],
+          },
+          created_at: nowIso,
+          updated_at: nowIso,
+          // details/examples/comments will be filled when fetching details
+          details: {
+            language: 'en-US',
+            title: submittedTitle,
+            background: '',
+            statement: '',
+            input_format: '',
+            output_format: '',
+            note: '',
+          },
+          examples: [],
+          comments: [],
+        } as PublishedProblem;
+
+        setPublishedProblems([minimalPublished, ...publishedProblems]);
+
+        // Replace the draft list item with a published one using server ID
+        setCombinedProblems(
+          combinedProblems.map((p) =>
+            p.id === id && p.type === 'draft'
+              ? {
+                  id: newProblemId,
+                  type: 'published',
+                  title: submittedTitle,
+                  status: 'pending_review',
+                  created_at: nowIso,
+                  updated_at: nowIso,
+                  originalProblem: minimalPublished,
+                }
+              : p,
+          ),
+        );
+      } else {
+        // Fallback: keep the entry but mark as published so it stays visible
+        setCombinedProblems(
+          combinedProblems.map((p) =>
+            p.id === id && p.type === 'draft'
+              ? {
+                  ...p,
+                  type: 'published',
+                  status: 'pending_review',
+                }
+              : p,
+          ),
+        );
+      }
 
       // Show success message
       toast.dismiss(loadingToast);
@@ -477,7 +546,7 @@ const ProblemSetting = () => {
         // Fetch full problem details when viewing a published problem
         const loadingToast = toast.loading('Loading problem details...');
 
-        fetch(`/api/problems/${id}`, {
+        fetch(`${API_BASE_URL}/problems/${id}`, {
           method: 'GET',
           mode: 'cors',
           headers: {
@@ -666,97 +735,112 @@ const ProblemSetting = () => {
             currentProblemType === 'published' &&
             currentProblem?.status !== 'needs_revision'
           }
-          onSave={(problem) => {
+          onSave={async (problem) => {
             if (
               currentProblemType === 'draft' ||
               currentProblem?.status === 'needs_revision'
             ) {
-              if (currentProblem) {
-                setProblemDrafts(
-                  problemDrafts.map((p) =>
-                    p.problem_draft_id === problem.problem_draft_id
-                      ? problem
-                      : p,
-                  ),
-                );
+              const isEditingExisting = Boolean(currentProblem);
 
-                setCombinedProblems(
-                  combinedProblems.map((p) => {
-                    if (
-                      p.id === problem.problem_draft_id &&
-                      p.type === 'draft'
-                    ) {
-                      return {
-                        ...p,
-                        title: problem.details.title,
-                        updated_at: new Date().toISOString(),
-                        originalProblem: problem,
-                      };
-                    }
-                    return p;
-                  }),
-                );
-                handleBackToList();
-              } else {
-                // Add new problem
-                setProblemDrafts([...problemDrafts, problem]);
-
-                // Add to combined problems
-                setCombinedProblems([
-                  ...combinedProblems,
-                  {
-                    id: problem.problem_draft_id,
-                    type: 'draft',
-                    title: problem.details.title,
-                    status: 'draft',
-                    created_at: problem.created_at || new Date().toISOString(),
-                    updated_at: problem.updated_at || new Date().toISOString(),
-                    originalProblem: problem,
-                  },
-                ]);
-              }
-
-              const apiProblemData = {
+              // Build payload; include problem_draft_id only for existing drafts
+              const apiProblemData: SaveProblemPayload = {
                 details: [problem.details],
                 examples: problem.examples,
                 problem_difficulty_id:
                   problem.problem_difficulty_id ||
                   '01969fec-37ad-7908-bd91-a70a3b96ac96',
               };
+              if (isEditingExisting && problem.problem_draft_id) {
+                apiProblemData.problem_draft_id = problem.problem_draft_id;
+              }
 
-              console.log('Saving problem:', apiProblemData);
               const loadingToast = toast.loading('Saving problem...');
-
-              fetch(`/api/problem-drafts`, {
-                method: 'PUT',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'ngrok-skip-browser-warning': 'abc',
-                },
-                credentials: 'include',
-                body: JSON.stringify(apiProblemData),
-              })
-                .then((response) => {
-                  if (!response.ok) {
-                    throw new Error('Failed to save problem');
-                  }
-                  return response.json();
-                })
-                .then((data) => {
-                  console.log('Problem saved successfully:', data);
-                  toast.dismiss(loadingToast);
-                  toast.success('Problem saved successfully!');
-                })
-                .catch((error) => {
-                  console.error('Error saving problem:', error);
-                  toast.dismiss(loadingToast);
-                  toast.error(
-                    error instanceof Error
-                      ? error.message
-                      : 'Failed to save problem',
-                  );
+              try {
+                const response = await fetch(`${API_BASE_URL}/problem-drafts`, {
+                  method: 'PUT',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'ngrok-skip-browser-warning': 'abc',
+                  },
+                  credentials: 'include',
+                  body: JSON.stringify(apiProblemData),
                 });
-              handleBackToList();
+
+                if (!response.ok) {
+                  throw new Error('Failed to save problem');
+                }
+                const data = await response.json();
+                const serverId: string =
+                  data?.problem_draft_id || problem.problem_draft_id;
+
+                // Normalize local state to use the server-assigned ID
+                if (isEditingExisting) {
+                  // Update existing draft entry; replace id if backend returned a different one
+                  setProblemDrafts(
+                    problemDrafts.map((p) =>
+                      p.problem_draft_id === problem.problem_draft_id
+                        ? { ...problem, problem_draft_id: serverId }
+                        : p,
+                    ),
+                  );
+
+                  setCombinedProblems(
+                    combinedProblems.map((p) => {
+                      if (
+                        p.type === 'draft' &&
+                        p.id === problem.problem_draft_id
+                      ) {
+                        return {
+                          ...p,
+                          id: serverId,
+                          title: problem.details.title,
+                          updated_at: new Date().toISOString(),
+                          originalProblem: {
+                            ...problem,
+                            problem_draft_id: serverId,
+                          },
+                        };
+                      }
+                      return p;
+                    }),
+                  );
+                } else {
+                  // New draft: add using the server ID
+                  const normalizedProblem: Problem = {
+                    ...problem,
+                    problem_draft_id: serverId,
+                  };
+                  setProblemDrafts([...problemDrafts, normalizedProblem]);
+                  setCombinedProblems([
+                    ...combinedProblems,
+                    {
+                      id: serverId,
+                      type: 'draft',
+                      title: normalizedProblem.details.title,
+                      status: 'draft',
+                      created_at:
+                        normalizedProblem.created_at ||
+                        new Date().toISOString(),
+                      updated_at:
+                        normalizedProblem.updated_at ||
+                        new Date().toISOString(),
+                      originalProblem: normalizedProblem,
+                    },
+                  ]);
+                }
+
+                toast.dismiss(loadingToast);
+                toast.success('Problem saved successfully!');
+                handleBackToList();
+              } catch (error) {
+                console.error('Error saving problem:', error);
+                toast.dismiss(loadingToast);
+                toast.error(
+                  error instanceof Error
+                    ? error.message
+                    : 'Failed to save problem',
+                );
+              }
             }
           }}
           onCancel={handleBackToList}

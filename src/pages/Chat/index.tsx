@@ -2,6 +2,7 @@ import { PaperAirplaneIcon } from '@heroicons/react/24/outline';
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 
+import { API_BASE_URL } from '../../config';
 import chatWebSocket from '../../services/chatWebSocket';
 
 interface LanguageContent {
@@ -425,10 +426,8 @@ const Chat = () => {
     const fetchProblems = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/problems', {
-          method: 'GET',
+        const response = await fetch(`${API_BASE_URL}/problems`, {
           headers: {
-            'Content-Type': 'application/json',
             'ngrok-skip-browser-warning': 'abc',
           },
           credentials: 'include',
@@ -500,7 +499,7 @@ const Chat = () => {
 
       try {
         const response = await fetch(
-          `/api/problems/${activeProblem}/messages`,
+          `${API_BASE_URL}/problems/${activeProblem}/messages`,
           {
             method: 'GET',
             headers: {

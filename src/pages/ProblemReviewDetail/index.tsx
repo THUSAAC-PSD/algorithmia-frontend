@@ -9,17 +9,20 @@ import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import Problem, { IProblem } from '../../components/Problem';
+import { API_BASE_URL } from '../../config'; // added
 
-// Mock interface for tester users
+// Interface for tester users
 interface Tester {
   user_id: string;
   username: string;
+  display_name: string;
 }
 
 const ProblemReviewDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+
   const [problem, setProblem] = useState<IProblem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [decision, setDecision] = useState<'approve' | 'reject' | null>(null);
@@ -51,7 +54,7 @@ const ProblemReviewDetail = () => {
     const fetchProblem = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(`/api/problems/${id}`, {
+        const response = await fetch(`${API_BASE_URL}/problems/${id}`, {
           method: 'GET',
           mode: 'cors',
           headers: {
@@ -120,14 +123,15 @@ const ProblemReviewDetail = () => {
           created_at: new Date(data.problem.created_at || Date.now()),
           updated_at: new Date(data.problem.updated_at || Date.now()),
           author: data.problem.creator?.username || 'Unknown',
-          status: data.problem.status || 'pending_review',
+          status:
+            (data.problem.status === 'pending_review'
+              ? 'pending'
+              : data.problem.status) || 'pending',
         };
         setProblem(convertedProblem);
 
         try {
-          const testersResponse = await fetch('/api/testers', {
-            method: 'GET',
-            mode: 'cors',
+          const testersResponse = await fetch(`${API_BASE_URL}/testers`, {
             headers: {
               'ngrok-skip-browser-warning': 'abc',
             },
@@ -142,6 +146,7 @@ const ProblemReviewDetail = () => {
               ? testersData.map((item: Tester) => ({
                   user_id: item.user_id,
                   username: item.username,
+                  display_name: item.display_name,
                 }))
               : [];
 
@@ -196,25 +201,28 @@ const ProblemReviewDetail = () => {
         type: 'info',
       });
 
-      const assign_testers = await fetch(`/api/problems/${id}/testers`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': 'abc',
+      const assign_testers = await fetch(
+        `${API_BASE_URL}/problems/${id}/testers`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'abc',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            problem_id: id,
+            tester_ids: assignedTesters,
+          }),
         },
-        credentials: 'include',
-        body: JSON.stringify({
-          problem_id: id,
-          tester_ids: assignedTesters,
-        }),
-      });
+      );
       if (!assign_testers.ok) {
         throw new Error(
           (await assign_testers.json()).message || 'Failed to assign testers',
         );
       }
 
-      const response = await fetch(`/api/problems/${id}/reviews`, {
+      const response = await fetch(`${API_BASE_URL}/problems/${id}/reviews`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -258,7 +266,7 @@ const ProblemReviewDetail = () => {
         type: 'info',
       });
 
-      const response = await fetch(`/api/problems/${id}/complete`, {
+      const response = await fetch(`${API_BASE_URL}/problems/${id}/complete`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -411,7 +419,7 @@ const ProblemReviewDetail = () => {
                   <option value="">-- Select a tester --</option>
                   {availableTesters.map((tester) => (
                     <option key={tester.user_id} value={tester.user_id}>
-                      {tester.username}
+                      {tester.display_name}
                     </option>
                   ))}
                 </select>
@@ -442,7 +450,7 @@ const ProblemReviewDetail = () => {
                         key={testerId}
                         className="flex items-center bg-slate-800 text-slate-300 px-3 py-1 rounded-full"
                       >
-                        <span>{tester ? tester.username : testerId}</span>
+                        <span>{tester ? tester.display_name : testerId}</span>
                         <button
                           type="button"
                           onClick={() =>

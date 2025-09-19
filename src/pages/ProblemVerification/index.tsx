@@ -9,6 +9,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 import { IProblem } from '../../components/Problem';
+import { API_BASE_URL } from '../../config';
 
 interface ProblemApiResponse {
   problem_id: string;
@@ -55,6 +56,26 @@ const ProblemVerification = () => {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
 
+  // Map backend statuses to UI statuses used by filters/badges
+  const mapStatus = (status?: string): IProblem['status'] => {
+    switch (status) {
+      case 'pending_review':
+        return 'pending';
+      case 'approved_for_testing':
+      case 'awaiting_final_check':
+      case 'completed':
+      case 'approve':
+        return 'approved';
+      case 'needs_revision':
+        return 'needs_changes';
+      case 'rejected':
+      case 'reject':
+        return 'rejected';
+      default:
+        return (status as IProblem['status']) || 'pending';
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
 
@@ -62,9 +83,7 @@ const ProblemVerification = () => {
       setIsLoading(true);
       try {
         // Fetch submitted problems from the /problems endpoint
-        const response = await fetch('/api/problems', {
-          method: 'GET',
-          mode: 'cors',
+        const response = await fetch(`${API_BASE_URL}/problems`, {
           headers: {
             'ngrok-skip-browser-warning': 'abc',
           },
@@ -122,7 +141,7 @@ const ProblemVerification = () => {
                   created_at: new Date(problem.created_at || Date.now()),
                   updated_at: new Date(problem.updated_at || Date.now()),
                   author: problem.creator?.username || 'Unknown',
-                  status: problem.status || 'pending',
+                  status: mapStatus(problem.status),
                 };
               })
             : [];
@@ -186,15 +205,18 @@ const ProblemVerification = () => {
   ) => {
     try {
       // Send status change to server
-      const response = await fetch(`/api/problems/${problemId}/status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': 'abc',
+      const response = await fetch(
+        `${API_BASE_URL}/problems/${problemId}/status`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'abc',
+          },
+          credentials: 'include',
+          body: JSON.stringify({ status: newStatus }),
         },
-        credentials: 'include',
-        body: JSON.stringify({ status: newStatus }),
-      });
+      );
 
       if (!response.ok) {
         throw new Error(
@@ -259,18 +281,21 @@ const ProblemVerification = () => {
     setIsSubmitting(true);
     try {
       // Send feedback to server
-      const response = await fetch(`/api/problems/${activeTabId}/feedback`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': 'abc',
+      const response = await fetch(
+        `${API_BASE_URL}/problems/${activeTabId}/feedback`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'abc',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            feedback: feedbackText,
+            status: 'needs_changes',
+          }),
         },
-        credentials: 'include',
-        body: JSON.stringify({
-          feedback: feedbackText,
-          status: 'needs_changes',
-        }),
-      });
+      );
 
       if (!response.ok) {
         throw new Error(

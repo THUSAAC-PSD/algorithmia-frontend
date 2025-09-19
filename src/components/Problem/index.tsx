@@ -53,10 +53,16 @@ export interface IProblem {
   author?: string;
   status?:
     | 'approve'
+    | 'approved'
+    | 'approved_for_testing'
+    | 'awaiting_final_check'
+    | 'completed'
     | 'reject'
+    | 'rejected'
     | 'needs_revision'
+    | 'needs_changes'
     | 'pending_review'
-    | 'approved_for_testing';
+    | 'pending';
 }
 
 interface ProblemProps {
@@ -97,6 +103,7 @@ const Problem: React.FC<ProblemProps> = ({ problem, language }) => {
   // Get status badge for rendering
   const getStatusBadge = (status: string | undefined) => {
     switch (status) {
+      case 'pending':
       case 'pending_review':
         return (
           <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400">
@@ -104,18 +111,24 @@ const Problem: React.FC<ProblemProps> = ({ problem, language }) => {
           </span>
         );
       case 'approve':
+      case 'approved':
+      case 'approved_for_testing':
+      case 'awaiting_final_check':
+      case 'completed':
         return (
           <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400">
             {t('problem.statuses.approved')}
           </span>
         );
       case 'reject':
+      case 'rejected':
         return (
           <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400">
             {t('problem.statuses.rejected')}
           </span>
         );
       case 'needs_revision':
+      case 'needs_changes':
         return (
           <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-500/20 text-orange-400">
             {t('problem.statuses.needs_changes')}

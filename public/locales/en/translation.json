@@ -61,7 +61,8 @@
     "rejected": "Rejected",
     "needs_revision": "Needs Revision",
     "completed": "Completed",
-    "awaiting_final_check": "Awaiting Final Check"
+    "awaiting_final_check": "Awaiting Final Check",
+    "approved_for_testing": "Approved for Testing"
   },
   "problemVerification": {
     "openChat": "Open Chat",

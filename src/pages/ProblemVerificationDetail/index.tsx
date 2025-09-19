@@ -10,6 +10,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 import { EditorRef, MilkdownEditorWrapper } from '../../components/Editor';
 import Problem, { IProblem } from '../../components/Problem';
+import { API_BASE_URL } from '../../config'; // added
 
 const ProblemVerificationDetail = () => {
   const { t } = useTranslation();
@@ -27,7 +28,7 @@ const ProblemVerificationDetail = () => {
       setIsLoading(true);
       try {
         // Fetch the problem details from the API
-        const response = await fetch(`/api/problems/${id}`, {
+        const response = await fetch(`${API_BASE_URL}/problems/${id}`, {
           method: 'GET',
           mode: 'cors',
           headers: {
@@ -122,18 +123,21 @@ const ProblemVerificationDetail = () => {
 
     try {
       // Send feedback and status update to the server
-      const response = await fetch(`/api/problems/${id}/test-results`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': 'abc',
+      const response = await fetch(
+        `${API_BASE_URL}/problems/${id}/test-results`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'abc',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            comment: editorContent,
+            status: selectedStatus === 'approve' ? 'passed' : 'failed',
+          }),
         },
-        credentials: 'include',
-        body: JSON.stringify({
-          comment: editorContent,
-          status: selectedStatus === 'approve' ? 'passed' : 'failed',
-        }),
-      });
+      );
 
       if (!response.ok) {
         throw new Error(

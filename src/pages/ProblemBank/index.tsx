@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import Problem, { IProblem } from '../../components/Problem';
+import { API_BASE_URL } from '../../config'; // added
 
 const ProblemBank = () => {
   const { t } = useTranslation();
@@ -31,7 +32,7 @@ const ProblemBank = () => {
     const fetchProblems = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(`/api/problems`, {
+        const response = await fetch(`${API_BASE_URL}/problems`, {
           method: 'GET',
           mode: 'cors',
           headers: {
@@ -133,7 +134,7 @@ const ProblemBank = () => {
     setSelectedProblem(problem); // First set with placeholder data for immediate display
 
     try {
-      const response = await fetch(`/api/problems/${problem.id}`, {
+      const response = await fetch(`${API_BASE_URL}/problems/${problem.id}`, {
         method: 'GET',
         mode: 'cors',
         headers: {
@@ -298,14 +299,17 @@ const ProblemBank = () => {
       const detailedProblems = await Promise.all(
         selectedProblems.map(async (problem) => {
           try {
-            const response = await fetch(`/api/problems/${problem.id}`, {
-              method: 'GET',
-              mode: 'cors',
-              headers: {
-                'ngrok-skip-browser-warning': 'abc',
+            const response = await fetch(
+              `${API_BASE_URL}/problems/${problem.id}`,
+              {
+                method: 'GET',
+                mode: 'cors',
+                headers: {
+                  'ngrok-skip-browser-warning': 'abc',
+                },
+                credentials: 'include',
               },
-              credentials: 'include',
-            });
+            );
 
             if (!response.ok) {
               throw new Error(

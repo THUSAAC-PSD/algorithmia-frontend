@@ -9,6 +9,8 @@ import {
 } from 'react-router-dom';
 
 import Sidebar from './components/Sidebar';
+import { API_BASE_URL } from './config';
+import EmailVerificationPage from './pages/Auth/EmailVerification';
 import SignIn from './pages/Auth/SignIn';
 import SignOut from './pages/Auth/SignOut';
 import SignUp from './pages/Auth/SignUp';
@@ -63,6 +65,7 @@ function AppContent() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [userRoles, setUserRoles] = useState<string[]>([]); // Store multiple roles
+  const [userName, setUserName] = useState<string>('');
   const location = useLocation();
   const isAuthPage = ['/signin', '/signup'].includes(location.pathname);
 
@@ -77,7 +80,7 @@ function AppContent() {
 
         if (loggedIn) {
           // Fetch the current user data from the API
-          const response = await fetch(`/api/users/current`, {
+          const response = await fetch(`${API_BASE_URL}/users/current`, {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
@@ -90,10 +93,14 @@ function AppContent() {
             const userData = await response.json();
             const roles = userData.user?.roles || [];
             setUserRoles(roles);
+            const name = userData.user?.username || userData.user?.email || '';
+            setUserName(name);
           } else {
             // If API call fails, fallback to localStorage
             const rolesFromStorage = localStorage.getItem('userRoles');
             setUserRoles(rolesFromStorage ? JSON.parse(rolesFromStorage) : []);
+            const nameFromStorage = localStorage.getItem('userName') || '';
+            setUserName(nameFromStorage);
           }
         } else {
           setUserRoles([]);
@@ -103,12 +110,21 @@ function AppContent() {
         // Fallback to localStorage if API call fails
         const rolesFromStorage = localStorage.getItem('userRoles');
         setUserRoles(rolesFromStorage ? JSON.parse(rolesFromStorage) : []);
+        const nameFromStorage = localStorage.getItem('userName') || '';
+        setUserName(nameFromStorage);
       } finally {
         setIsLoading(false);
       }
     };
 
     checkAuthStatus();
+
+    // React to cross-component auth changes (e.g., sign out)
+    const onAuthChanged = () => {
+      checkAuthStatus();
+    };
+    window.addEventListener('auth-changed', onAuthChanged);
+    return () => window.removeEventListener('auth-changed', onAuthChanged);
   }, []);
 
   if (isLoading) {
@@ -157,12 +173,15 @@ function AppContent() {
           },
         }}
       />
-      {isLoggedIn && !isAuthPage && <Sidebar userRoles={userRoles} />}
+      {isLoggedIn && !isAuthPage && (
+        <Sidebar userRoles={userRoles} userName={userName} />
+      )}
       <Routes>
         {/* Public routes */}
         <Route path="/signin" element={<SignIn />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/signout" element={<SignOut />} />
+        <Route path="/verify-email" element={<EmailVerificationPage />} />
         <Route path="/" element={isLoggedIn ? <Home /> : <LandingPage />} />
 
         {/* Protected routes */}

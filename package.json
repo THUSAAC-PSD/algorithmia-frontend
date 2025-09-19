@@ -10,16 +10,16 @@
     "prepare": "husky",
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "format": "prettier --write \"{.,src/**,test/**}/*.{ts,tsx,css,scss,html,md}\"",
+  "format": "prettier --config ./prettier.config.cjs --write \"{.,src/**,test/**}/*.{ts,tsx,css,scss,html,md}\"",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
       "eslint --fix",
-      "prettier --write"
+      "prettier --config ./prettier.config.cjs --write"
     ],
-    "*.{css,scss,html,md}": "prettier --write"
+    "*.{css,scss,html,md}": "prettier --config ./prettier.config.cjs --write"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",

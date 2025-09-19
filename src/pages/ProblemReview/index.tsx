@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 import { IProblem } from '../../components/Problem';
+import { API_BASE_URL } from '../../config';
 
 const ProblemReview = () => {
   const navigate = useNavigate();
@@ -14,6 +15,26 @@ const ProblemReview = () => {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
 
+  // Map backend statuses to UI statuses used by filters/badges
+  const mapStatus = (status?: string): string => {
+    switch (status) {
+      case 'pending_review':
+        return 'pending';
+      case 'approved_for_testing':
+        return 'approved';
+      case 'needs_revision':
+        return 'needs_changes';
+      case 'awaiting_final_check':
+        return 'approved';
+      case 'completed':
+        return 'approved';
+      case 'rejected':
+        return 'rejected';
+      default:
+        return status || 'pending';
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
 
@@ -21,9 +42,7 @@ const ProblemReview = () => {
       setLoading(true);
       try {
         // Fetch problems from the API
-        const response = await fetch('/api/problems', {
-          method: 'GET',
-          mode: 'cors',
+        const response = await fetch(`${API_BASE_URL}/problems`, {
           headers: {
             'ngrok-skip-browser-warning': 'abc',
           },
@@ -100,7 +119,7 @@ const ProblemReview = () => {
                     created_at: new Date(problem.created_at || Date.now()),
                     updated_at: new Date(problem.updated_at || Date.now()),
                     author: problem.creator?.username || 'Unknown',
-                    status: problem.status || 'pending',
+                    status: mapStatus(problem.status),
                   };
                 },
               )
@@ -163,16 +182,10 @@ const ProblemReview = () => {
             {t('problemReview.statuses.pending')}
           </span>
         );
-      case 'approve':
+      case 'approved':
         return (
           <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400">
             {t('problemReview.statuses.approved')}
-          </span>
-        );
-      case 'approved_for_testing':
-        return (
-          <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400">
-            {t('problemReview.statuses.approvedForTesting')}
           </span>
         );
       case 'rejected':
@@ -181,7 +194,7 @@ const ProblemReview = () => {
             {t('problemReview.statuses.rejected')}
           </span>
         );
-      case 'needs_revision':
+      case 'needs_changes':
         return (
           <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-500/20 text-orange-400">
             {t('problemReview.statuses.needsChanges')}

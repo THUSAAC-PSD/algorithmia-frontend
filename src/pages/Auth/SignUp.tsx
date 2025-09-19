@@ -7,12 +7,15 @@ import {
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
+import SuccessCheck from '../../components/animations/SuccessCheck';
+
 const SignUp = () => {
   const API_BASE_URL =
     import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
   console.log(API_BASE_URL);
   const [step, setStep] = useState<'email' | 'verification'>('email');
   const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -21,6 +24,7 @@ const SignUp = () => {
   const [isVerifying, setIsVerifying] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [showSuccessAnim, setShowSuccessAnim] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -39,7 +43,8 @@ const SignUp = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email }),
+        // Backend expects email, username, password
+        body: JSON.stringify({ email, username, password }),
       });
 
       const data = await response.json();
@@ -49,7 +54,12 @@ const SignUp = () => {
       }
 
       setSuccess('Verification code sent to your email');
-      setStep('verification');
+      setShowSuccessAnim(true);
+      // Step change will happen after animation completes
+      setTimeout(() => {
+        setShowSuccessAnim(false);
+        setStep('verification');
+      }, 1200);
     } catch (error) {
       setError(
         error instanceof Error
@@ -74,6 +84,12 @@ const SignUp = () => {
       return;
     }
 
+    // basic client-side username validation to match backend requirement (min=5)
+    if (!username || username.length < 5) {
+      setError('Username must be at least 5 characters long');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -83,10 +99,11 @@ const SignUp = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name,
+          // backend expects these exact keys per internal/user/feature/register/command.go
+          username,
           email,
           password,
-          verification_code: verificationCode,
+          email_verification_code: verificationCode,
         }),
       });
 
@@ -111,7 +128,15 @@ const SignUp = () => {
   };
 
   return (
-    <div className="min-h-screen min-w-screen flex items-center justify-center bg-slate-900 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen min-w-screen flex items-center justify-center bg-slate-900 py-12 px-4 sm:px-6 lg:px-8 relative">
+      {showSuccessAnim && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="flex flex-col items-center gap-4">
+            <SuccessCheck size={120} />
+            <p className="text-emerald-300 text-sm">Verification email sent</p>
+          </div>
+        </div>
+      )}
       <div className="max-w-md w-full space-y-6 bg-slate-800 p-8 rounded-xl shadow-lg">
         <div className="text-center">
           <h2 className="text-3xl font-bold text-white">
@@ -142,6 +167,28 @@ const SignUp = () => {
         <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
           {step === 'email' ? (
             <>
+              <div>
+                <label htmlFor="username" className="sr-only">
+                  Username
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <UserIcon className="h-5 w-5 text-slate-400" />
+                  </div>
+                  <input
+                    id="username"
+                    name="username"
+                    type="text"
+                    autoComplete="username"
+                    required
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="appearance-none relative block w-full pl-10 pr-3 py-3 bg-slate-700 border border-slate-600 placeholder-slate-400 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="Username"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label htmlFor="name" className="sr-only">
                   Full name

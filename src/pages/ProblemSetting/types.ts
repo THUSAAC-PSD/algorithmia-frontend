@@ -63,6 +63,14 @@ export interface ProblemExample {
   output: string;
 }
 
+// Payload used when saving a problem draft to the API
+export interface SaveProblemPayload {
+  problem_draft_id?: string;
+  details: ProblemDetails[];
+  examples: ProblemExample[];
+  problem_difficulty_id: string;
+}
+
 export type ViewType = 'list' | 'detail';
 
 export type ProblemType = 'draft' | 'published';

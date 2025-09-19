@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { EditorRef, MilkdownEditorWrapper } from '../../components/Editor';
+import { API_BASE_URL } from '../../config';
 import { Problem } from './types';
 
 interface DisplayName {
@@ -72,7 +73,7 @@ const ProblemDetail = ({
       setErrorLoadingDifficulties('');
 
       try {
-        const response = await fetch('/api/problem-difficulties', {
+        const response = await fetch(`${API_BASE_URL}/problem-difficulties`, {
           headers: {
             'ngrok-skip-browser-warning': 'abc',
           },

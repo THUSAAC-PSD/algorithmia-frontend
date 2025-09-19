@@ -1,4 +1,5 @@
 import {
+  ArrowRightOnRectangleIcon,
   ChatBubbleLeftRightIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -14,7 +15,9 @@ import { NavLink } from 'react-router-dom';
 
 import LanguageSwitcher from '../LanguageSwitcher';
 
-const Sidebar = ({ userRoles }: { userRoles: string[] }) => {
+type SidebarProps = { userRoles: string[]; userName?: string };
+
+const Sidebar = ({ userRoles, userName }: SidebarProps) => {
   const { t } = useTranslation();
   const [collapsed, setCollapsed] = useState(false);
 
@@ -149,16 +152,40 @@ const Sidebar = ({ userRoles }: { userRoles: string[] }) => {
           {!collapsed ? (
             <>
               <div className="h-8 w-8 rounded-full bg-indigo-500 flex items-center justify-center">
-                <span className="text-white text-xs font-medium">U</span>
+                <span className="text-white text-xs font-medium">
+                  {(userName?.trim()?.charAt(0) || 'U').toUpperCase()}
+                </span>
               </div>
               <div className="ml-3">
-                <p className="text-sm font-medium text-white">User</p>
+                <p className="text-sm font-medium text-white">
+                  {userName || 'User'}
+                </p>
                 <p className="text-xs text-slate-400">Settings</p>
+              </div>
+              <div className="ml-auto">
+                <NavLink
+                  to="/signout"
+                  className="inline-flex items-center px-3 py-1.5 rounded-lg bg-slate-700/60 hover:bg-slate-700 text-slate-200 text-xs"
+                >
+                  <ArrowRightOnRectangleIcon className="w-4 h-4 mr-1.5" />
+                  Sign out
+                </NavLink>
               </div>
             </>
           ) : (
-            <div className="h-8 w-8 rounded-full bg-indigo-500 flex items-center justify-center">
-              <span className="text-white text-xs font-medium">U</span>
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-full bg-indigo-500 flex items-center justify-center">
+                <span className="text-white text-xs font-medium">
+                  {(userName?.trim()?.charAt(0) || 'U').toUpperCase()}
+                </span>
+              </div>
+              <NavLink
+                to="/signout"
+                title="Sign out"
+                className="h-8 w-8 rounded-full bg-slate-700/60 hover:bg-slate-700 flex items-center justify-center text-slate-300"
+              >
+                <ArrowRightOnRectangleIcon className="w-4 h-4" />
+              </NavLink>
             </div>
           )}
         </div>

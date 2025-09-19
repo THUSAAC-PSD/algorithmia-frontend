@@ -61,7 +61,8 @@
     "rejected": "已拒绝",
     "needs_revision": "需要修改",
     "completed": "已完成",
-    "awaiting_final_check": "等待最终检查"
+    "awaiting_final_check": "等待最终检查",
+    "approved_for_testing": "已批准测试"
   },
   "problemVerification": {
     "openChat": "开启群聊",
