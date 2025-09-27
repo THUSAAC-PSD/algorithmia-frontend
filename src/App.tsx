@@ -1,5 +1,15 @@
+import { Flex, Spinner, Text } from '@chakra-ui/react';
+import {
+  ChatBubbleLeftRightIcon,
+  DocumentCheckIcon,
+  DocumentMagnifyingGlassIcon,
+  DocumentTextIcon,
+  ServerStackIcon,
+  ShieldCheckIcon,
+} from '@heroicons/react/24/outline';
 import { useEffect, useState } from 'react';
 import { Toaster } from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import {
   BrowserRouter,
   Navigate,
@@ -8,7 +18,7 @@ import {
   useLocation,
 } from 'react-router-dom';
 
-import Sidebar from './components/Sidebar';
+import Layout, { SidebarItem } from './components/Layout';
 import { API_BASE_URL } from './config';
 import EmailVerificationPage from './pages/Auth/EmailVerification';
 import SignIn from './pages/Auth/SignIn';
@@ -66,6 +76,7 @@ function AppContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [userRoles, setUserRoles] = useState<string[]>([]); // Store multiple roles
   const [userName, setUserName] = useState<string>('');
+  const { t } = useTranslation();
   const location = useLocation();
   const isAuthPage = ['/signin', '/signup'].includes(location.pathname);
 
@@ -129,9 +140,14 @@ function AppContent() {
 
   if (isLoading) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center bg-slate-900">
-        <div className="text-indigo-400 text-2xl font-medium">Loading...</div>
-      </div>
+      <Flex h="100vh" w="100vw" align="center" justify="center" bg="bg">
+        <Flex align="center" gap={4}>
+          <Spinner size="lg" color="accent.emphasized" />
+          <Text fontSize="2xl" fontWeight="medium" color="accent.emphasized">
+            Loading...
+          </Text>
+        </Flex>
+      </Flex>
     );
   }
 
@@ -147,8 +163,163 @@ function AppContent() {
 
   const isReviewer = () => userRoles.includes('reviewer') || isAdmin();
 
+  // Helper function to check if user has specific role
+  const hasRole = (role: string) => userRoles.includes(role);
+
+  // Create sidebar items based on user roles
+  const sidebarItems: SidebarItem[] = [
+    {
+      id: 'problem-setting',
+      label: t('sidebar.problemSetting'),
+      icon: <DocumentTextIcon className="w-5 h-5" />,
+      path: '/problemsetting',
+    },
+    {
+      id: 'chat',
+      label: t('sidebar.chat'),
+      icon: <ChatBubbleLeftRightIcon className="w-5 h-5" />,
+      path: '/chat',
+    },
+    {
+      id: 'problem-verification',
+      label: t('sidebar.problemVerification'),
+      icon: <DocumentCheckIcon className="w-5 h-5" />,
+      show: hasRole('tester') || isAdmin(),
+      path: '/problemverification',
+    },
+    {
+      id: 'problem-review',
+      label: t('sidebar.problemReview'),
+      icon: <DocumentMagnifyingGlassIcon className="w-5 h-5" />,
+      show: hasRole('reviewer') || isAdmin(),
+      path: '/problemreview',
+    },
+    {
+      id: 'problem-bank',
+      label: t('sidebar.problemBank'),
+      icon: <ServerStackIcon className="w-5 h-5" />,
+      show: isAdmin(),
+      path: '/problembank',
+    },
+    {
+      id: 'super-admin',
+      label: t('sidebar.superAdmin'),
+      icon: <ShieldCheckIcon className="w-5 h-5" />,
+      show: hasRole('super_admin'),
+      path: '/superadmin',
+    },
+  ];
+
+  const mainContent = (
+    <Routes>
+      {/* Public routes */}
+      <Route path="/signin" element={<SignIn />} />
+      <Route path="/signup" element={<SignUp />} />
+      <Route path="/signout" element={<SignOut />} />
+      <Route path="/verify-email" element={<EmailVerificationPage />} />
+      <Route path="/" element={isLoggedIn ? <Home /> : <LandingPage />} />
+
+      {/* Protected routes */}
+      <Route
+        path="/problemsetting"
+        element={isLoggedIn ? <ProblemSetting /> : <Navigate to="/signin" />}
+      />
+      <Route
+        path="/chat/:id?"
+        element={isLoggedIn ? <Chat /> : <Navigate to="/signin" />}
+      />
+      <Route
+        path="/problemverification"
+        element={
+          isLoggedIn && isVerifier() ? (
+            <ProblemVerification />
+          ) : (
+            <Navigate to="/signin" />
+          )
+        }
+      />
+      <Route
+        path="/problemverification/:id"
+        element={
+          isLoggedIn ? (
+            isVerifier() ? (
+              <ProblemVerificationDetail />
+            ) : (
+              <Navigate to="/" />
+            )
+          ) : (
+            <Navigate to="/signin" />
+          )
+        }
+      />
+
+      <Route
+        path="/problembank"
+        element={
+          isLoggedIn && isAdmin() ? <ProblemBank /> : <Navigate to="/signin" />
+        }
+      />
+
+      <Route
+        path="/problemreview"
+        element={
+          isLoggedIn && isReviewer() ? (
+            <ProblemReview />
+          ) : (
+            <Navigate to="/signin" />
+          )
+        }
+      />
+      <Route
+        path="/problemreview/:id"
+        element={
+          isLoggedIn && isReviewer() ? (
+            <ProblemReviewDetail />
+          ) : (
+            <Navigate to="/signin" />
+          )
+        }
+      />
+
+      {/* Super Admin Routes */}
+      <Route
+        path="/superadmin"
+        element={
+          isLoggedIn && isSuperAdmin() ? <SuperAdmin /> : <Navigate to="/" />
+        }
+      >
+        <Route
+          index
+          element={
+            <div className="p-6">
+              <h1 className="text-2xl font-bold text-white">
+                Super Admin Dashboard
+              </h1>
+            </div>
+          }
+        />
+
+        <Route path="personnel" element={<PersonnelManagement />} />
+        <Route path="competitions" element={<CompetitionManagement />} />
+        <Route path="competitions/:id" element={<CompetitionDetail />} />
+
+        <Route
+          path="settings"
+          element={
+            <div className="p-6">
+              <h1 className="text-2xl font-bold text-white">System Settings</h1>
+              <div className="mt-4 text-slate-300">
+                Settings configuration interface will be implemented here.
+              </div>
+            </div>
+          }
+        />
+      </Route>
+    </Routes>
+  );
+
   return (
-    <div className="flex h-screen w-screen">
+    <>
       <TitleManager />
       <Toaster
         position="top-right"
@@ -173,121 +344,15 @@ function AppContent() {
           },
         }}
       />
-      {isLoggedIn && !isAuthPage && (
-        <Sidebar userRoles={userRoles} userName={userName} />
+
+      {isLoggedIn && !isAuthPage ? (
+        <Layout userName={userName} sidebarItems={sidebarItems}>
+          {mainContent}
+        </Layout>
+      ) : (
+        mainContent
       )}
-      <Routes>
-        {/* Public routes */}
-        <Route path="/signin" element={<SignIn />} />
-        <Route path="/signup" element={<SignUp />} />
-        <Route path="/signout" element={<SignOut />} />
-        <Route path="/verify-email" element={<EmailVerificationPage />} />
-        <Route path="/" element={isLoggedIn ? <Home /> : <LandingPage />} />
-
-        {/* Protected routes */}
-        <Route
-          path="/problemsetting"
-          element={isLoggedIn ? <ProblemSetting /> : <Navigate to="/signin" />}
-        />
-        <Route
-          path="/chat/:id?"
-          element={isLoggedIn ? <Chat /> : <Navigate to="/signin" />}
-        />
-        <Route
-          path="/problemverification"
-          element={
-            isLoggedIn && isVerifier() ? (
-              <ProblemVerification />
-            ) : (
-              <Navigate to="/signin" />
-            )
-          }
-        />
-        <Route
-          path="/problemverification/:id"
-          element={
-            isLoggedIn ? (
-              isVerifier() ? (
-                <ProblemVerificationDetail />
-              ) : (
-                <Navigate to="/" />
-              )
-            ) : (
-              <Navigate to="/signin" />
-            )
-          }
-        />
-
-        <Route
-          path="/problembank"
-          element={
-            isLoggedIn && isAdmin() ? (
-              <ProblemBank />
-            ) : (
-              <Navigate to="/signin" />
-            )
-          }
-        />
-
-        <Route
-          path="/problemreview"
-          element={
-            isLoggedIn && isReviewer() ? (
-              <ProblemReview />
-            ) : (
-              <Navigate to="/signin" />
-            )
-          }
-        />
-        <Route
-          path="/problemreview/:id"
-          element={
-            isLoggedIn && isReviewer() ? (
-              <ProblemReviewDetail />
-            ) : (
-              <Navigate to="/signin" />
-            )
-          }
-        />
-
-        {/* Super Admin Routes */}
-        <Route
-          path="/superadmin"
-          element={
-            isLoggedIn && isSuperAdmin() ? <SuperAdmin /> : <Navigate to="/" />
-          }
-        >
-          <Route
-            index
-            element={
-              <div className="p-6">
-                <h1 className="text-2xl font-bold text-white">
-                  Super Admin Dashboard
-                </h1>
-              </div>
-            }
-          />
-
-          <Route path="personnel" element={<PersonnelManagement />} />
-          <Route path="competitions" element={<CompetitionManagement />} />
-          <Route path="competitions/:id" element={<CompetitionDetail />} />
-
-          <Route
-            path="settings"
-            element={
-              <div className="p-6">
-                <h1 className="text-2xl font-bold text-white">
-                  System Settings
-                </h1>
-                <div className="mt-4 text-slate-300">
-                  Settings configuration interface will be implemented here.
-                </div>
-              </div>
-            }
-          />
-        </Route>
-      </Routes>
-    </div>
+    </>
   );
 }
 
