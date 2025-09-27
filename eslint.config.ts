@@ -45,6 +45,8 @@ export default tseslint.config(
       'import/newline-after-import': 'warn',
       'import/no-duplicates': 'warn',
       'tsdoc/syntax': 'warn',
+      '@typescript-eslint/no-empty-interface': 'off',
+      '@typescript-eslint/no-empty-object-type': 'off',
     },
   },
 );
