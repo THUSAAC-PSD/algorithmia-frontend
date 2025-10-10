@@ -9,6 +9,18 @@ export interface Problem {
   created_at: string;
   updated_at: string;
   status?: string;
+  // Optional versions (for published problems) - newest first
+  versions?: ProblemVersion[];
+}
+
+export interface ProblemVersion {
+  version_id?: string;
+  details: ProblemDetails[];
+  examples: ProblemExample[];
+  problem_difficulty?: {
+    problem_difficulty_id: string;
+  };
+  created_at?: string;
 }
 
 export interface PublishedProblem {

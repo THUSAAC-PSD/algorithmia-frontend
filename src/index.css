@@ -1,1 +1,164 @@
 @import 'tailwindcss';
+@import 'katex/dist/katex.min.css';
+
+/* Minimal dark markdown styles independent of typography plugin */
+.markdown-body {
+  color: #cbd5e1; /* slate-300 */
+  line-height: 1.75;
+}
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  color: #fff;
+  font-weight: 700;
+  margin: 1rem 0 0.5rem;
+}
+.markdown-body p {
+  margin: 0.5rem 0;
+}
+.markdown-body a {
+  color: #a5b4fc;
+  text-decoration: underline;
+}
+.markdown-body ul,
+.markdown-body ol {
+  padding-left: 1.25rem;
+  margin: 0.75rem 0;
+}
+.markdown-body li {
+  margin: 0.25rem 0;
+}
+.markdown-body code {
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 0.15rem 0.35rem;
+  border-radius: 0.25rem;
+  border: 1px solid #334155;
+}
+.markdown-body pre {
+  background: #0b1220;
+  color: #e2e8f0;
+  border: 1px solid #334155;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  overflow: auto;
+}
+.markdown-body pre code {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+.markdown-body blockquote {
+  border-left: 4px solid #475569;
+  margin: 1rem 0;
+  padding-left: 1rem;
+  color: #cbd5e1;
+}
+.markdown-body table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+}
+.markdown-body th,
+.markdown-body td {
+  border: 1px solid #334155;
+  padding: 0.5rem 0.75rem;
+}
+.markdown-body th {
+  background: #111827;
+  color: #e5e7eb;
+}
+
+/* Markdown typography tweaks for dark theme */
+.prose {
+  max-width: none;
+}
+
+.md-prose pre {
+  background-color: #0b1220;
+  color: #e2e8f0;
+  border: 1px solid #334155;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  overflow-x: auto;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+}
+
+.md-prose code {
+  background-color: #0b1220;
+  color: #e2e8f0;
+  border: 1px solid #334155;
+  border-radius: 0.375rem;
+  padding: 0.125rem 0.375rem;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+}
+
+.md-prose pre code {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+.md-prose table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.md-prose th,
+.md-prose td {
+  border: 1px solid #334155;
+  padding: 0.5rem 0.75rem;
+}
+.md-prose thead th {
+  background-color: #0f172a;
+}
+
+.prose pre {
+  background-color: #0b1220; /* slate-950-ish */
+  color: #e2e8f0; /* slate-200 */
+  border: 1px solid #334155; /* slate-600 */
+  border-radius: 0.5rem; /* rounded-lg */
+  padding: 1rem; /* p-4 */
+  overflow-x: auto;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+}
+
+.prose code {
+  background-color: #0b1220; /* match pre bg */
+  color: #e2e8f0;
+  border: 1px solid #334155;
+  border-radius: 0.375rem; /* rounded-md */
+  padding: 0.125rem 0.375rem; /* px-1.5 py-0.5 */
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+}
+
+/* Avoid double-styling inline code inside fenced blocks */
+.prose pre code {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+/* Tables in markdown */
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.prose th,
+.prose td {
+  border: 1px solid #334155; /* slate-600 */
+  padding: 0.5rem 0.75rem;
+}
+.prose thead th {
+  background-color: #0f172a; /* slate-900 */
+}

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { BlockMath, InlineMath } from 'react-katex';
 import ReactMarkdown from 'react-markdown';
 import rehypeKatex from 'rehype-katex';
+import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 
@@ -13,12 +14,17 @@ interface MarkdownProps {
 // eslint-disable-next-line
 const _mapProps = (props: MarkdownProps): any => ({
   ...props,
+  skipHtml: false,
   remarkPlugins: [remarkMath, [remarkGfm, { singleTilde: false }]],
-  rehypePlugins: [rehypeKatex],
+  // rehypeRaw allows rendering of inline HTML (e.g., <br />) present in some problem statements.
+  // Note: This can introduce XSS if untrusted content is rendered. Our content comes from trusted editors.
+  rehypePlugins: [rehypeRaw, rehypeKatex],
   components: {
-    math: ({ value }: { value: string }) => <BlockMath>{value}</BlockMath>,
-    inlineMath: ({ value }: { value: string }) => (
-      <InlineMath>{value}</InlineMath>
+    math: ({ children }: { children: React.ReactNode }) => (
+      <BlockMath>{String(children)}</BlockMath>
+    ),
+    inlineMath: ({ children }: { children: React.ReactNode }) => (
+      <InlineMath>{String(children)}</InlineMath>
     ),
   },
 });
@@ -26,6 +32,16 @@ const _mapProps = (props: MarkdownProps): any => ({
 const Markdown: React.FC<MarkdownProps> = (props) => (
   <ReactMarkdown {..._mapProps(props)} />
 );
+
+// Decode HTML entities so sequences like &lt;br/&gt; become <br/> before markdown processing.
+// This enables inline HTML to be recognized by rehype-raw instead of rendered as plain text.
+const decodeEntities = (input: string): string => {
+  if (!input) return '';
+  if (typeof window === 'undefined') return input; // SSR safeguard
+  const ta = document.createElement('textarea');
+  ta.innerHTML = input;
+  return ta.value;
+};
 export interface IProblem {
   id: string;
   problem_difficulty: {
@@ -179,8 +195,8 @@ const Problem: React.FC<ProblemProps> = ({ problem, language }) => {
           <h3 className="text-lg font-semibold text-white mb-2">
             {t('problem.background')}
           </h3>
-          <div className="text-slate-300 prose prose-invert max-w-none">
-            <Markdown>{details.background}</Markdown>
+          <div className="markdown-body">
+            <Markdown>{decodeEntities(details.background)}</Markdown>
           </div>
         </div>
       )}
@@ -190,8 +206,8 @@ const Problem: React.FC<ProblemProps> = ({ problem, language }) => {
           <h3 className="text-lg font-semibold text-white mb-2">
             {t('problem.statement')}
           </h3>
-          <div className="text-slate-300 prose prose-invert max-w-none">
-            <Markdown>{details.statement}</Markdown>
+          <div className="markdown-body">
+            <Markdown>{decodeEntities(details.statement)}</Markdown>
           </div>
         </div>
       )}
@@ -201,8 +217,8 @@ const Problem: React.FC<ProblemProps> = ({ problem, language }) => {
           <h3 className="text-lg font-semibold text-white mb-2">
             {t('problem.inputFormat')}
           </h3>
-          <div className="text-slate-300 prose prose-invert max-w-none">
-            <Markdown>{details.input_format}</Markdown>
+          <div className="markdown-body">
+            <Markdown>{decodeEntities(details.input_format)}</Markdown>
           </div>
         </div>
       )}
@@ -212,8 +228,8 @@ const Problem: React.FC<ProblemProps> = ({ problem, language }) => {
           <h3 className="text-lg font-semibold text-white mb-2">
             {t('problem.outputFormat')}
           </h3>
-          <div className="text-slate-300 prose prose-invert max-w-none">
-            <Markdown>{details.output_format}</Markdown>
+          <div className="markdown-body">
+            <Markdown>{decodeEntities(details.output_format)}</Markdown>
           </div>
         </div>
       )}
@@ -253,8 +269,8 @@ const Problem: React.FC<ProblemProps> = ({ problem, language }) => {
           <h3 className="text-lg font-semibold text-white mb-2">
             {t('problem.notes')}
           </h3>
-          <div className="text-slate-300 prose prose-invert max-w-none">
-            {details.note}
+          <div className="markdown-body">
+            <Markdown>{decodeEntities(details.note)}</Markdown>
           </div>
         </div>
       )}

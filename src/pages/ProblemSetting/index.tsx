@@ -28,7 +28,19 @@ const ProblemSetting = () => {
   >(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [isLoading, setIsLoading] = useState(true);
-  const showMyProblemsOnly = true;
+
+  // By default show only the current user's problems. Super admins should see all.
+  let showMyProblemsOnly = true;
+  try {
+    const rolesString = localStorage.getItem('userRoles');
+    const roles: string[] = rolesString ? JSON.parse(rolesString) : [];
+    if (Array.isArray(roles) && roles.includes('super_admin')) {
+      showMyProblemsOnly = false;
+    }
+  } catch {
+    // If parsing fails, fall back to showing only user's problems
+    showMyProblemsOnly = true;
+  }
 
   // State for separate problem types
   const [problemDrafts, setProblemDrafts] = useState<Problem[]>([]);
@@ -190,10 +202,26 @@ const ProblemSetting = () => {
           // Store the original problems
           setProblemDrafts(transformedDraftProblems);
           setPublishedProblems(transformedPublishedProblems);
+
+          // Avoid showing duplicate entries: if a published problem has the same
+          // id as a draft (e.g. when a problem is set to needs_revision), hide
+          // the draft in the combined list while keeping it in problemDrafts for
+          // editing.
+          const publishedIds = new Set(
+            transformedPublishedProblems.map((p) => p.problem_id),
+          );
+
+          interface DraftForListFilter {
+            problem_draft_id: string;
+          }
+          const draftsForList: Problem[] = transformedDraftProblems.filter(
+            (d: DraftForListFilter) => !publishedIds.has(d.problem_draft_id),
+          );
+
           // Create combined list for display
           const combinedList: CombinedProblemListItem[] = [
-            // Map drafts to combined format
-            ...transformedDraftProblems.map(
+            // Map drafts to combined format (excluding those shadowed by published)
+            ...draftsForList.map(
               (draft: Problem): CombinedProblemListItem => ({
                 id: draft.problem_draft_id,
                 type: 'draft' as ProblemType,
@@ -585,6 +613,18 @@ const ProblemSetting = () => {
             // Convert to our internal Problem format
             const convertedProblem: Problem = {
               problem_draft_id: data.problem.problem_id,
+              // expose versions so ProblemDetail can show them
+              versions: Array.isArray(data.problem.versions)
+                ? data.problem.versions.map((v: Record<string, unknown>) => ({
+                    version_id: v.version_id as string,
+                    details: (v.details as unknown[]) || [],
+                    examples: (v.examples as unknown[]) || [],
+                    problem_difficulty:
+                      (v.problem_difficulty as unknown) || undefined,
+                    created_at: v.created_at as string,
+                  }))
+                : [],
+
               details: {
                 language: detailsObj.language,
                 title: detailsObj.title,

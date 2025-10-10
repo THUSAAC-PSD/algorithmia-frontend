@@ -43,15 +43,21 @@ const ProblemDetail = ({
   const [language, setLanguage] = useState<string>(
     problem?.details.language || 'en-US',
   );
+  const [selectedVersionIndex, setSelectedVersionIndex] = useState<number>(0);
   const background_ref = useRef<EditorRef>(null);
   const statement_ref = useRef<EditorRef>(null);
   const input_format_ref = useRef<EditorRef>(null);
   const output_format_ref = useRef<EditorRef>(null);
   const note_ref = useRef<EditorRef>(null);
 
-  const [samples, setSamples] = useState<
-    Array<{ input: string; output: string }>
-  >(problem?.examples || [{ input: '', output: '' }]);
+  // If versions exist, default samples and fields to the selected version
+  const initialSamples =
+    problem?.versions && problem.versions.length > 0
+      ? problem.versions[0].examples
+      : problem?.examples || [{ input: '', output: '' }];
+
+  const [samples, setSamples] =
+    useState<Array<{ input: string; output: string }>>(initialSamples);
 
   const [difficulty, setDifficulty] = useState<string>(
     problem?.problem_difficulty_id || '',
@@ -67,6 +73,38 @@ const ProblemDetail = ({
   const [errorLoadingDifficulties, setErrorLoadingDifficulties] =
     useState<string>('');
 
+  useEffect(() => {
+    // When selectedVersionIndex or problem changes, populate fields from that version
+    if (problem?.versions && problem.versions.length > 0) {
+      const version = problem.versions[selectedVersionIndex];
+      if (version) {
+        const enDetails =
+          Array.isArray(version.details) && version.details.length > 0
+            ? version.details.find((d) => d.language === 'en-US') ||
+              version.details[0]
+            : undefined;
+
+        if (enDetails) {
+          setTitle(enDetails.title || '');
+          setLanguage(enDetails.language || 'en-US');
+          // Update editors via refs by setting defaultValue prop is not possible after mount,
+          // but we can set samples and difficulty/contest fields that are plain inputs
+          setSamples(version.examples || [{ input: '', output: '' }]);
+          setDifficulty(
+            version.problem_difficulty?.problem_difficulty_id || '',
+          );
+        }
+      }
+    } else {
+      // No versions: fall back to problem props
+      setTitle(problem?.details.title || '');
+      setLanguage(problem?.details.language || 'en-US');
+      setSamples(problem?.examples || [{ input: '', output: '' }]);
+      setDifficulty(problem?.problem_difficulty_id || '');
+    }
+  }, [problem, selectedVersionIndex]);
+
+  // Fetch difficulties on mount
   useEffect(() => {
     const fetchDifficulties = async () => {
       setIsLoadingDifficulties(true);
@@ -200,6 +238,25 @@ const ProblemDetail = ({
 
       <div className="bg-gray rounded-lg shadow p-6 bg-slate-800 shadow-slate-800">
         {/* Title and Language */}
+        {problem?.versions && problem.versions.length > 1 && (
+          <div className="mb-4">
+            <label className="block text-md font-medium text-white mb-1">
+              Versions
+            </label>
+            <select
+              value={selectedVersionIndex}
+              onChange={(e) => setSelectedVersionIndex(Number(e.target.value))}
+              className="text-white px-3 py-2 border border-slate-600 rounded-md"
+              disabled={isReadOnly}
+            >
+              {problem.versions.map((v, idx) => (
+                <option key={v.version_id || idx} value={idx}>
+                  {v.created_at ? `${v.created_at}` : `Version ${idx + 1}`}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div>
             <label className="block text-lg font-bold text-white mb-1">
