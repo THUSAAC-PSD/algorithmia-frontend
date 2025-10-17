@@ -13,13 +13,25 @@ const REVIEWABLE_STATUSES: ReadonlyArray<IProblem['status']> = [
   'needs_changes',
 ];
 
-const dedupeById = (items: IProblem[]): IProblem[] =>
+const getCanonicalProblemId = (problem: IProblem): string =>
+  problem.base_problem_id ?? problem.id;
+
+const dedupeByCanonicalId = (items: IProblem[]): IProblem[] =>
   Array.from(
     items
       .reduce((map, problem) => {
-        if (!map.has(problem.id)) {
-          map.set(problem.id, problem);
+        const key = getCanonicalProblemId(problem);
+        const existing = map.get(key);
+
+        if (!existing) {
+          map.set(key, problem);
+          return map;
         }
+
+        if (problem.updated_at.getTime() > existing.updated_at.getTime()) {
+          map.set(key, problem);
+        }
+
         return map;
       }, new Map<string, IProblem>())
       .values(),
@@ -114,6 +126,22 @@ const ProblemReview = () => {
                         problem.title[0]
                       : { language: 'en-US', title: 'Untitled Problem' };
 
+                  // Determine canonical/problem base identifier to deduplicate history entries
+                  const candidateIds = [
+                    (problem as { history_root_id?: string }).history_root_id,
+                    (problem as { root_problem_id?: string }).root_problem_id,
+                    (problem as { base_problem_id?: string }).base_problem_id,
+                    (problem as { origin_problem_id?: string })
+                      .origin_problem_id,
+                    (problem as { source_problem_id?: string })
+                      .source_problem_id,
+                  ];
+                  const baseProblemId =
+                    candidateIds.find(
+                      (value) =>
+                        typeof value === 'string' && value.trim().length > 0,
+                    ) || problem.problem_id;
+
                   // Transform problem_difficulty to match IProblem format
                   const difficultyDisplayNames =
                     problem.problem_difficulty?.display_names || [];
@@ -124,6 +152,7 @@ const ProblemReview = () => {
 
                   return {
                     id: problem.problem_id,
+                    base_problem_id: baseProblemId,
                     problem_difficulty:
                       mappedDifficulty.length > 0
                         ? mappedDifficulty
@@ -153,7 +182,7 @@ const ProblemReview = () => {
           const normalizedProblems = transformedProblems.filter((problem) =>
             REVIEWABLE_STATUSES.includes(problem.status || 'pending'),
           );
-          const uniqueProblems = dedupeById(normalizedProblems);
+          const uniqueProblems = dedupeByCanonicalId(normalizedProblems);
 
           setProblems(uniqueProblems);
         }

@@ -66,6 +66,7 @@ export interface IProblem {
   comments?: string[];
   created_at: Date;
   updated_at: Date;
+  base_problem_id?: string;
   author?: string;
   status?:
     | 'approve'

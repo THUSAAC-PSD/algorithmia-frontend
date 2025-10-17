@@ -53,6 +53,31 @@ const ProblemSetting = () => {
       publishedProblems.map((problem) => problem.problem_id),
     );
 
+    const resolveBaseProblemId = (
+      source: unknown,
+      fallback: string,
+    ): string => {
+      if (!source || typeof source !== 'object') {
+        return fallback;
+      }
+
+      const record = source as Record<string, unknown>;
+      const candidates = [
+        record.history_root_id,
+        record.root_problem_id,
+        record.base_problem_id,
+        record.origin_problem_id,
+        record.source_problem_id,
+        record.parent_problem_id,
+      ];
+
+      const match = candidates.find(
+        (value) => typeof value === 'string' && value.trim().length > 0,
+      );
+
+      return (match as string | undefined) ?? fallback;
+    };
+
     const draftItems: CombinedProblemListItem[] = problemDrafts
       .filter((draft) => !publishedIds.has(draft.problem_draft_id))
       .map((draft) => ({
@@ -62,6 +87,7 @@ const ProblemSetting = () => {
         status: draft.status || (draft.is_submitted ? 'submitted' : 'draft'),
         created_at: draft.created_at,
         updated_at: draft.updated_at,
+        base_problem_id: resolveBaseProblemId(draft, draft.problem_draft_id),
         originalProblem: draft,
       }));
 
@@ -85,22 +111,86 @@ const ProblemSetting = () => {
           status: pub.status || 'published',
           created_at: pub.created_at,
           updated_at: pub.updated_at,
+          base_problem_id: resolveBaseProblemId(pub, pub.problem_id),
           originalProblem: pub,
         };
       },
     );
 
     const merged = [...draftItems, ...publishedItems];
-    const seen = new Set<string>();
 
-    return merged.filter((item) => {
-      const key = `${item.type}:${item.id}`;
-      if (seen.has(key)) {
-        return false;
+    const toTimestamp = (value?: string) => {
+      if (!value) return 0;
+      const parsed = Date.parse(value);
+      return Number.isNaN(parsed) ? 0 : parsed;
+    };
+
+    const pickPreferred = (
+      current: CombinedProblemListItem,
+      candidate: CombinedProblemListItem,
+    ): CombinedProblemListItem => {
+      const currentTime = Math.max(
+        toTimestamp(current.updated_at),
+        toTimestamp(current.created_at),
+      );
+      const candidateTime = Math.max(
+        toTimestamp(candidate.updated_at),
+        toTimestamp(candidate.created_at),
+      );
+
+      if (candidateTime > currentTime) {
+        return candidate;
       }
-      seen.add(key);
-      return true;
-    });
+
+      if (candidateTime < currentTime) {
+        return current;
+      }
+
+      const promoteStatuses = new Set(['draft', 'needs_revision', 'history']);
+      const currentStatus = current.status || '';
+      const candidateStatus = candidate.status || '';
+
+      if (
+        promoteStatuses.has(candidateStatus) &&
+        !promoteStatuses.has(currentStatus)
+      ) {
+        return candidate;
+      }
+
+      if (
+        promoteStatuses.has(currentStatus) &&
+        !promoteStatuses.has(candidateStatus)
+      ) {
+        return current;
+      }
+
+      if (candidate.type === 'draft' && current.type !== 'draft') {
+        return candidate;
+      }
+
+      if (current.type === 'draft' && candidate.type !== 'draft') {
+        return current;
+      }
+
+      return current;
+    };
+
+    const deduped = merged.reduce((acc, item) => {
+      const key =
+        item.base_problem_id ||
+        resolveBaseProblemId(item.originalProblem, item.id);
+      const existing = acc.get(key);
+
+      if (!existing) {
+        acc.set(key, item);
+        return acc;
+      }
+
+      acc.set(key, pickPreferred(existing, item));
+      return acc;
+    }, new Map<string, CombinedProblemListItem>());
+
+    return Array.from(deduped.values());
   }, [problemDrafts, publishedProblems]);
 
   useEffect(() => {

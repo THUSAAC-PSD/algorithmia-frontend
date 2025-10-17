@@ -94,5 +94,6 @@ export interface CombinedProblemListItem {
   status: string;
   created_at: string;
   updated_at: string;
+  base_problem_id?: string;
   originalProblem: Problem | PublishedProblem;
 }
