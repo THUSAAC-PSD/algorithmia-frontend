@@ -1,5 +1,5 @@
 import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 
@@ -47,9 +47,61 @@ const ProblemSetting = () => {
   const [publishedProblems, setPublishedProblems] = useState<
     PublishedProblem[]
   >([]);
-  const [combinedProblems, setCombinedProblems] = useState<
-    CombinedProblemListItem[]
-  >([]);
+
+  const combinedProblems = useMemo(() => {
+    const publishedIds = new Set(
+      publishedProblems.map((problem) => problem.problem_id),
+    );
+
+    const draftItems: CombinedProblemListItem[] = problemDrafts
+      .filter((draft) => !publishedIds.has(draft.problem_draft_id))
+      .map((draft) => ({
+        id: draft.problem_draft_id,
+        type: 'draft' as ProblemType,
+        title: draft.details?.title || '',
+        status: draft.status || (draft.is_submitted ? 'submitted' : 'draft'),
+        created_at: draft.created_at,
+        updated_at: draft.updated_at,
+        originalProblem: draft,
+      }));
+
+    const publishedItems: CombinedProblemListItem[] = publishedProblems.map(
+      (pub) => {
+        const titleFromDetails =
+          pub.details?.title ||
+          (Array.isArray(pub.title) && pub.title.length > 0
+            ? (
+                pub.title.find(
+                  (t: { language: string; title: string }) =>
+                    t.language === 'en-US',
+                ) || pub.title[0]
+              ).title
+            : '');
+
+        return {
+          id: pub.problem_id,
+          type: 'published' as ProblemType,
+          title: titleFromDetails,
+          status: pub.status || 'published',
+          created_at: pub.created_at,
+          updated_at: pub.updated_at,
+          originalProblem: pub,
+        };
+      },
+    );
+
+    const merged = [...draftItems, ...publishedItems];
+    const seen = new Set<string>();
+
+    return merged.filter((item) => {
+      const key = `${item.type}:${item.id}`;
+      if (seen.has(key)) {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    });
+  }, [problemDrafts, publishedProblems]);
 
   useEffect(() => {
     let isMounted = true;
@@ -203,55 +255,13 @@ const ProblemSetting = () => {
           setProblemDrafts(transformedDraftProblems);
           setPublishedProblems(transformedPublishedProblems);
 
-          // Avoid showing duplicate entries: if a published problem has the same
-          // id as a draft (e.g. when a problem is set to needs_revision), hide
-          // the draft in the combined list while keeping it in problemDrafts for
-          // editing.
-          const publishedIds = new Set(
-            transformedPublishedProblems.map((p) => p.problem_id),
-          );
-
-          interface DraftForListFilter {
-            problem_draft_id: string;
-          }
-          const draftsForList: Problem[] = transformedDraftProblems.filter(
-            (d: DraftForListFilter) => !publishedIds.has(d.problem_draft_id),
-          );
-
-          // Create combined list for display
-          const combinedList: CombinedProblemListItem[] = [
-            // Map drafts to combined format (excluding those shadowed by published)
-            ...draftsForList.map(
-              (draft: Problem): CombinedProblemListItem => ({
-                id: draft.problem_draft_id,
-                type: 'draft' as ProblemType,
-                title: draft.details.title,
-                status: draft.is_submitted ? 'submitted' : 'draft',
-                created_at: draft.created_at,
-                updated_at: draft.updated_at,
-                originalProblem: draft,
-              }),
-            ),
-            // Map published problems to combined format
-            ...transformedPublishedProblems.map((pub) => ({
-              id: pub.problem_id,
-              type: 'published' as ProblemType,
-              title: pub.details?.title || '',
-              status: pub.status || 'published',
-              created_at: pub.created_at,
-              updated_at: pub.updated_at,
-              originalProblem: pub,
-            })),
-          ];
-
-          setCombinedProblems(combinedList);
+          // Store the original problems; combined list is derived below
         }
       } catch (error) {
         console.error('Error fetching problems:', error);
         if (isMounted) {
           setProblemDrafts([]);
           setPublishedProblems([]);
-          setCombinedProblems([]);
         }
       } finally {
         if (isMounted) setIsLoading(false);
@@ -266,22 +276,73 @@ const ProblemSetting = () => {
 
   // Filter combined problems based on search term and current user filter
   const currentUserId = localStorage.getItem('userId');
-  const filteredProblems = combinedProblems.filter((problem) => {
-    // Filter by search term
-    const matchesSearchTerm = problem.title
-      ?.toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    // Filter by current user if the toggle is on
-    const matchesCurrentUser =
-      !showMyProblemsOnly ||
-      (problem.originalProblem &&
-        ((problem.type === 'published' &&
-          (problem.originalProblem as PublishedProblem).creator?.user_id ===
-            currentUserId) ||
-          problem.type === 'draft'));
+  const filteredAndSortedProblems = useMemo(() => {
+    const searchLower = searchTerm.trim().toLowerCase();
 
-    return matchesSearchTerm && matchesCurrentUser;
-  });
+    const filtered = combinedProblems.filter((problem) => {
+      const matchesSearchTerm = problem.title
+        ?.toLowerCase()
+        .includes(searchLower);
+
+      const matchesCurrentUser =
+        !showMyProblemsOnly ||
+        (problem.originalProblem &&
+          ((problem.type === 'published' &&
+            (problem.originalProblem as PublishedProblem).creator?.user_id ===
+              currentUserId) ||
+            problem.type === 'draft'));
+
+      return matchesSearchTerm && matchesCurrentUser;
+    });
+
+    if (!sortColumn) {
+      return filtered;
+    }
+
+    const toSortableValue = (
+      problem: CombinedProblemListItem,
+      column: keyof CombinedProblemListItem,
+    ): number | string => {
+      switch (column) {
+        case 'created_at':
+        case 'updated_at': {
+          const raw = problem[column];
+          const value = typeof raw === 'string' ? raw : '';
+          const timestamp = Date.parse(value);
+          return Number.isNaN(timestamp) ? 0 : timestamp;
+        }
+        case 'title':
+        case 'status':
+        default: {
+          const raw = problem[column];
+          return (typeof raw === 'string' ? raw : '').toLowerCase();
+        }
+      }
+    };
+
+    const sorted = [...filtered].sort((a, b) => {
+      const valueA = toSortableValue(a, sortColumn);
+      const valueB = toSortableValue(b, sortColumn);
+
+      if (typeof valueA === 'number' && typeof valueB === 'number') {
+        const diff = valueA - valueB;
+        return sortDirection === 'asc' ? diff : -diff;
+      }
+
+      return sortDirection === 'asc'
+        ? String(valueA).localeCompare(String(valueB))
+        : String(valueB).localeCompare(String(valueA));
+    });
+
+    return sorted;
+  }, [
+    combinedProblems,
+    currentUserId,
+    searchTerm,
+    showMyProblemsOnly,
+    sortColumn,
+    sortDirection,
+  ]);
 
   // Sort problems based on current sort column and direction
   const handleSort = (column: keyof CombinedProblemListItem) => {
@@ -354,16 +415,10 @@ const ProblemSetting = () => {
                       });
                     }
 
-                    // Update both the original drafts array and the combined list
-                    setProblemDrafts(
-                      problemDrafts.filter(
+                    // Remove the deleted draft locally so the table updates immediately
+                    setProblemDrafts((prevDrafts) =>
+                      prevDrafts.filter(
                         (problem) => problem.problem_draft_id !== id,
-                      ),
-                    );
-                    setCombinedProblems(
-                      combinedProblems.filter(
-                        (problem) =>
-                          !(problem.id === id && problem.type === 'draft'),
                       ),
                     );
 
@@ -472,74 +527,47 @@ const ProblemSetting = () => {
       const submittedTitle = submittedListItem?.title || '';
       const nowIso = new Date().toISOString();
 
-      // Remove the draft from drafts
-      setProblemDrafts(
-        problemDrafts.filter((problem) => problem.problem_draft_id !== id),
+      // Remove the draft from local list so it disappears immediately
+      setProblemDrafts((prevDrafts) =>
+        prevDrafts.filter((problem) => problem.problem_draft_id !== id),
       );
 
-      // Add a minimal published problem so it can be opened immediately
-      if (newProblemId) {
-        const minimalPublished: PublishedProblem = {
-          problem_id: newProblemId,
-          title: [{ language: 'en-US', title: submittedTitle }],
-          status: 'pending_review',
-          creator: { user_id: currentUserId, username: currentUserName },
-          reviewer: undefined,
-          testers: [],
-          target_contest: null,
-          assigned_contest: null,
-          problem_difficulty: {
-            problem_difficulty_id: '',
-            display_names: [],
-          },
-          created_at: nowIso,
-          updated_at: nowIso,
-          // details/examples/comments will be filled when fetching details
-          details: {
-            language: 'en-US',
-            title: submittedTitle,
-            background: '',
-            statement: '',
-            input_format: '',
-            output_format: '',
-            note: '',
-          },
-          examples: [],
-          comments: [],
-        } as PublishedProblem;
+      const publishedId = newProblemId ?? id;
+      const minimalPublished: PublishedProblem = {
+        problem_id: publishedId,
+        title: [{ language: 'en-US', title: submittedTitle }],
+        status: 'pending_review',
+        creator: { user_id: currentUserId, username: currentUserName },
+        reviewer: undefined,
+        testers: [],
+        target_contest: null,
+        assigned_contest: null,
+        problem_difficulty: {
+          problem_difficulty_id: '',
+          display_names: [],
+        },
+        created_at: nowIso,
+        updated_at: nowIso,
+        details: {
+          language: 'en-US',
+          title: submittedTitle,
+          background: '',
+          statement: '',
+          input_format: '',
+          output_format: '',
+          note: '',
+        },
+        examples: [],
+        comments: [],
+      } as PublishedProblem;
 
-        setPublishedProblems([minimalPublished, ...publishedProblems]);
-
-        // Replace the draft list item with a published one using server ID
-        setCombinedProblems(
-          combinedProblems.map((p) =>
-            p.id === id && p.type === 'draft'
-              ? {
-                  id: newProblemId,
-                  type: 'published',
-                  title: submittedTitle,
-                  status: 'pending_review',
-                  created_at: nowIso,
-                  updated_at: nowIso,
-                  originalProblem: minimalPublished,
-                }
-              : p,
-          ),
-        );
-      } else {
-        // Fallback: keep the entry but mark as published so it stays visible
-        setCombinedProblems(
-          combinedProblems.map((p) =>
-            p.id === id && p.type === 'draft'
-              ? {
-                  ...p,
-                  type: 'published',
-                  status: 'pending_review',
-                }
-              : p,
-          ),
-        );
-      }
+      // Add or replace the corresponding published problem entry so it appears in the table
+      setPublishedProblems((prevPublished) => [
+        minimalPublished,
+        ...prevPublished.filter(
+          (problem) => problem.problem_id !== publishedId,
+        ),
+      ]);
 
       // Show success message
       toast.dismiss(loadingToast);
@@ -753,7 +781,7 @@ const ProblemSetting = () => {
             </div>
           </div>
           <ProblemList
-            problems={filteredProblems}
+            problems={filteredAndSortedProblems}
             onProblemClick={handleProblemClick}
             onDeleteProblem={handleDeleteProblem}
             onAddNewProblem={handleAddNewProblem}
@@ -816,57 +844,28 @@ const ProblemSetting = () => {
                 // Normalize local state to use the server-assigned ID
                 if (isEditingExisting) {
                   // Update existing draft entry; replace id if backend returned a different one
-                  setProblemDrafts(
-                    problemDrafts.map((p) =>
-                      p.problem_draft_id === problem.problem_draft_id
+                  setProblemDrafts((prevDrafts) =>
+                    prevDrafts.map((draft) =>
+                      draft.problem_draft_id === problem.problem_draft_id
                         ? { ...problem, problem_draft_id: serverId }
-                        : p,
+                        : draft,
                     ),
-                  );
-
-                  setCombinedProblems(
-                    combinedProblems.map((p) => {
-                      if (
-                        p.type === 'draft' &&
-                        p.id === problem.problem_draft_id
-                      ) {
-                        return {
-                          ...p,
-                          id: serverId,
-                          title: problem.details.title,
-                          updated_at: new Date().toISOString(),
-                          originalProblem: {
-                            ...problem,
-                            problem_draft_id: serverId,
-                          },
-                        };
-                      }
-                      return p;
-                    }),
                   );
                 } else {
                   // New draft: add using the server ID
+                  const nowIso = new Date().toISOString();
                   const normalizedProblem: Problem = {
                     ...problem,
                     problem_draft_id: serverId,
+                    created_at: problem.created_at || nowIso,
+                    updated_at: problem.updated_at || nowIso,
                   };
-                  setProblemDrafts([...problemDrafts, normalizedProblem]);
-                  setCombinedProblems([
-                    ...combinedProblems,
-                    {
-                      id: serverId,
-                      type: 'draft',
-                      title: normalizedProblem.details.title,
-                      status: 'draft',
-                      created_at:
-                        normalizedProblem.created_at ||
-                        new Date().toISOString(),
-                      updated_at:
-                        normalizedProblem.updated_at ||
-                        new Date().toISOString(),
-                      originalProblem: normalizedProblem,
-                    },
-                  ]);
+                  setProblemDrafts((prevDrafts) => {
+                    const withoutDuplicate = prevDrafts.filter(
+                      (draft) => draft.problem_draft_id !== serverId,
+                    );
+                    return [...withoutDuplicate, normalizedProblem];
+                  });
                 }
 
                 toast.dismiss(loadingToast);

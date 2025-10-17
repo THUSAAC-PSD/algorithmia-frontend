@@ -3,7 +3,7 @@ import {
   ChatBubbleLeftRightIcon,
   ClockIcon,
 } from '@heroicons/react/24/outline';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -175,28 +175,39 @@ const ProblemVerification = () => {
     }
   }, [isLoading, problems.length]);
 
-  const filteredAndSortedProblems = problems
-    .filter((problem) => {
+  const filteredAndSortedProblems = useMemo(() => {
+    const searchLower = searchTerm.trim().toLowerCase();
+
+    const filtered = problems.filter((problem) => {
       const title = problem.details[0]?.title || '';
+      const author = problem.author || '';
       const matchesSearch =
-        title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (problem.author?.toLowerCase() || '').includes(
-          searchTerm.toLowerCase(),
-        );
+        title.toLowerCase().includes(searchLower) ||
+        author.toLowerCase().includes(searchLower);
       const matchesStatus =
         filterStatus === 'all' || problem.status === filterStatus;
       return matchesSearch && matchesStatus;
-    })
-    .sort((a, b) => {
-      const dateA = a.created_at;
-      const dateB = b.created_at;
-      return sortOrder === 'newest'
-        ? dateB.getTime() - dateA.getTime()
-        : dateA.getTime() - dateB.getTime();
     });
 
+    const toTimestamp = (value: unknown) => {
+      if (value instanceof Date) return value.getTime();
+      if (typeof value === 'number') return value;
+      if (typeof value === 'string') {
+        const parsed = Date.parse(value);
+        return Number.isFinite(parsed) ? parsed : 0;
+      }
+      return 0;
+    };
+
+    return [...filtered].sort((a, b) => {
+      const dateA = toTimestamp(a.created_at);
+      const dateB = toTimestamp(b.created_at);
+      return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+    });
+  }, [problems, searchTerm, filterStatus, sortOrder]);
+
   const toggleSortOrder = () => {
-    setSortOrder(sortOrder === 'newest' ? 'oldest' : 'newest');
+    setSortOrder((prev) => (prev === 'newest' ? 'oldest' : 'newest'));
   };
 
   const handleStatusChange = async (

@@ -1,10 +1,29 @@
 import { ArrowsUpDownIcon, ClockIcon } from '@heroicons/react/24/outline';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 import { IProblem } from '../../components/Problem';
 import { API_BASE_URL } from '../../config';
+
+const REVIEWABLE_STATUSES: ReadonlyArray<IProblem['status']> = [
+  'pending',
+  'approved',
+  'rejected',
+  'needs_changes',
+];
+
+const dedupeById = (items: IProblem[]): IProblem[] =>
+  Array.from(
+    items
+      .reduce((map, problem) => {
+        if (!map.has(problem.id)) {
+          map.set(problem.id, problem);
+        }
+        return map;
+      }, new Map<string, IProblem>())
+      .values(),
+  );
 
 const ProblemReview = () => {
   const navigate = useNavigate();
@@ -12,28 +31,35 @@ const ProblemReview = () => {
   const [problems, setProblems] = useState<IProblem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | IProblem['status']>(
+    'all',
+  );
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
 
   // Map backend statuses to UI statuses used by filters/badges
-  const mapStatus = (status?: string): string => {
+  const mapStatus = useCallback((status?: string): IProblem['status'] => {
     switch (status) {
       case 'pending_review':
         return 'pending';
       case 'approved_for_testing':
+      case 'awaiting_final_check':
+      case 'completed':
         return 'approved';
       case 'needs_revision':
         return 'needs_changes';
-      case 'awaiting_final_check':
+      case 'approve':
         return 'approved';
-      case 'completed':
-        return 'approved';
-      case 'rejected':
+      case 'reject':
         return 'rejected';
+      case 'needs_changes':
+      case 'approved':
+      case 'rejected':
+      case 'pending':
+        return status;
       default:
-        return status || 'pending';
+        return (status as IProblem['status']) || 'pending';
     }
-  };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -60,7 +86,7 @@ const ProblemReview = () => {
 
         if (isMounted) {
           // Transform published problems
-          const transformedProblems = Array.isArray(data?.problems)
+          const transformedProblems: IProblem[] = Array.isArray(data?.problems)
             ? data.problems.map(
                 (problem: {
                   problem_id: string;
@@ -124,9 +150,12 @@ const ProblemReview = () => {
                 },
               )
             : [];
-          console.log(transformedProblems);
+          const normalizedProblems = transformedProblems.filter((problem) =>
+            REVIEWABLE_STATUSES.includes(problem.status || 'pending'),
+          );
+          const uniqueProblems = dedupeById(normalizedProblems);
 
-          setProblems(transformedProblems);
+          setProblems(uniqueProblems);
         }
       } catch (error) {
         console.error('Error fetching problems:', error);
@@ -147,35 +176,49 @@ const ProblemReview = () => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [mapStatus]);
 
   // Filter and sort problems
-  const filteredAndSortedProblems = problems
-    .filter((problem) => {
+  const filteredAndSortedProblems = useMemo(() => {
+    const searchLower = searchTerm.trim().toLowerCase();
+
+    const filtered = problems.filter((problem) => {
       const title = problem.details[0]?.title || '';
+      const author = problem.author || '';
+      const status = problem.status || 'pending';
       const matchesSearch =
-        title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (problem.author?.toLowerCase() || '').includes(
-          searchTerm.toLowerCase(),
-        );
-      const matchesStatus =
-        filterStatus === 'all' || problem.status === filterStatus;
+        title.toLowerCase().includes(searchLower) ||
+        author.toLowerCase().includes(searchLower);
+      const matchesStatus = filterStatus === 'all' || status === filterStatus;
       return matchesSearch && matchesStatus;
-    })
-    .sort((a, b) => {
-      return sortOrder === 'newest'
-        ? b.created_at.getTime() - a.created_at.getTime()
-        : a.created_at.getTime() - b.created_at.getTime();
     });
+
+    const toTimestamp = (value: unknown) => {
+      if (value instanceof Date) return value.getTime();
+      if (typeof value === 'number') return value;
+      if (typeof value === 'string') {
+        const parsed = Date.parse(value);
+        return Number.isFinite(parsed) ? parsed : 0;
+      }
+      return 0;
+    };
+
+    return [...filtered].sort((a, b) => {
+      const dateA = toTimestamp(a.created_at);
+      const dateB = toTimestamp(b.created_at);
+      return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+    });
+  }, [problems, searchTerm, filterStatus, sortOrder]);
 
   // Toggle sort order
   const toggleSortOrder = () => {
-    setSortOrder(sortOrder === 'newest' ? 'oldest' : 'newest');
+    setSortOrder((prev) => (prev === 'newest' ? 'oldest' : 'newest'));
   };
 
   // Get status badge
   const getStatusBadge = (status: string | undefined) => {
-    switch (status) {
+    const normalizedStatus = mapStatus(status);
+    switch (normalizedStatus) {
       case 'pending':
         return (
           <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400">
@@ -235,7 +278,9 @@ const ProblemReview = () => {
           </button>
           <select
             value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
+            onChange={(e) =>
+              setFilterStatus(e.target.value as 'all' | IProblem['status'])
+            }
             className="px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="all">{t('problemReview.allStatus')}</option>

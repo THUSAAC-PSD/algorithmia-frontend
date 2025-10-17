@@ -52,6 +52,7 @@ const ProblemList: React.FC<ProblemListProps> = ({
   onSubmitProblem,
   onNavigateToChat,
   sortColumn,
+  sortDirection,
   onSort,
   renderSortIndicator,
 }) => {
@@ -94,32 +95,50 @@ const ProblemList: React.FC<ProblemListProps> = ({
           <table className="min-w-full divide-y divide-slate-700">
             <thead className="bg-slate-800">
               <tr>
-                {sortableColumns.map((column) => (
-                  <th
-                    key={String(column.key)}
-                    className="px-6 py-3 text-left text-sm font-medium text-white"
-                  >
-                    <button
-                      className="flex items-center cursor-pointer focus:outline-none group"
-                      onClick={() => onSort(column.key)}
-                      type="button"
+                {sortableColumns.map((column) => {
+                  const isActiveSort = sortColumn === column.key;
+                  const ariaSort = isActiveSort
+                    ? sortDirection === 'asc'
+                      ? 'ascending'
+                      : 'descending'
+                    : 'none';
+
+                  return (
+                    <th
+                      key={String(column.key)}
+                      className="px-6 py-3 text-left text-sm font-medium text-white"
+                      aria-sort={ariaSort}
+                      scope="col"
                     >
-                      <span>{column.label}</span>
-                      <span
-                        className={`ml-1 ${
-                          sortColumn === column.key
-                            ? 'text-indigo-400'
-                            : 'text-slate-500 group-hover:text-slate-300'
-                        }`}
+                      <button
+                        className="flex items-center cursor-pointer focus:outline-none group"
+                        onClick={() => onSort(column.key)}
+                        type="button"
                       >
-                        {renderSortIndicator(column.key)}
-                        {sortColumn !== column.key && (
-                          <span className="text-xs">↕</span>
-                        )}
-                      </span>
-                    </button>
-                  </th>
-                ))}
+                        <span>{column.label}</span>
+                        <span
+                          className={`ml-1 ${
+                            sortColumn === column.key
+                              ? 'text-indigo-400'
+                              : 'text-slate-500 group-hover:text-slate-300'
+                          }`}
+                        >
+                          {renderSortIndicator(column.key)}
+                          {sortColumn !== column.key && (
+                            <span className="text-xs">↕</span>
+                          )}
+                        </span>
+                        <span className="sr-only">
+                          {isActiveSort
+                            ? sortDirection === 'asc'
+                              ? 'sorted ascending'
+                              : 'sorted descending'
+                            : 'not sorted'}
+                        </span>
+                      </button>
+                    </th>
+                  );
+                })}
                 <th className="px-6 py-3 text-left text-sm font-medium text-white">
                   {t('problemList.actions')}
                 </th>
