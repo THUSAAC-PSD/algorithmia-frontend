@@ -4,6 +4,10 @@ import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 
 import { API_BASE_URL } from '../../config'; // added
+import {
+  normalizeProblemStatus,
+  ProblemStatus,
+} from '../../types/problem-status';
 import ProblemDetail from './ProblemDetail';
 import ProblemList from './ProblemList';
 import {
@@ -80,16 +84,22 @@ const ProblemSetting = () => {
 
     const draftItems: CombinedProblemListItem[] = problemDrafts
       .filter((draft) => !publishedIds.has(draft.problem_draft_id))
-      .map((draft) => ({
-        id: draft.problem_draft_id,
-        type: 'draft' as ProblemType,
-        title: draft.details?.title || '',
-        status: draft.status || (draft.is_submitted ? 'submitted' : 'draft'),
-        created_at: draft.created_at,
-        updated_at: draft.updated_at,
-        base_problem_id: resolveBaseProblemId(draft, draft.problem_draft_id),
-        originalProblem: draft,
-      }));
+      .map((draft) => {
+        const derivedStatus = normalizeProblemStatus(
+          draft.status ?? (draft.is_submitted ? 'pending_review' : 'draft'),
+        );
+
+        return {
+          id: draft.problem_draft_id,
+          type: 'draft' as ProblemType,
+          title: draft.details?.title || '',
+          status: derivedStatus,
+          created_at: draft.created_at,
+          updated_at: draft.updated_at,
+          base_problem_id: resolveBaseProblemId(draft, draft.problem_draft_id),
+          originalProblem: draft,
+        };
+      });
 
     const publishedItems: CombinedProblemListItem[] = publishedProblems.map(
       (pub) => {
@@ -108,7 +118,7 @@ const ProblemSetting = () => {
           id: pub.problem_id,
           type: 'published' as ProblemType,
           title: titleFromDetails,
-          status: pub.status || 'published',
+          status: normalizeProblemStatus(pub.status),
           created_at: pub.created_at,
           updated_at: pub.updated_at,
           base_problem_id: resolveBaseProblemId(pub, pub.problem_id),
@@ -146,9 +156,13 @@ const ProblemSetting = () => {
         return current;
       }
 
-      const promoteStatuses = new Set(['draft', 'needs_revision', 'history']);
-      const currentStatus = current.status || '';
-      const candidateStatus = candidate.status || '';
+      const promoteStatuses = new Set<ProblemStatus>([
+        'draft',
+        'review_changes_requested',
+        'testing_changes_requested',
+      ]);
+      const currentStatus = current.status;
+      const candidateStatus = candidate.status;
 
       if (
         promoteStatuses.has(candidateStatus) &&
@@ -260,8 +274,10 @@ const ProblemSetting = () => {
                   comments: string[];
                   created_at: string;
                   updated_at: string;
+                  status?: string;
                 }) => ({
                   ...problem,
+                  status: normalizeProblemStatus(problem.status),
                   // Take the first language version from the array (or create an empty object if details is empty)
                   details:
                     Array.isArray(problem.details) && problem.details.length > 0
@@ -314,7 +330,7 @@ const ProblemSetting = () => {
                   return {
                     problem_id: problem.problem_id,
                     title: problem.title,
-                    status: problem.status,
+                    status: normalizeProblemStatus(problem.status),
                     creator: problem.creator,
                     reviewer: problem.reviewer,
                     testers: problem.testers,
@@ -764,7 +780,7 @@ const ProblemSetting = () => {
                 : [],
               created_at: data.problem.created_at,
               updated_at: data.problem.updated_at,
-              status: data.problem.status,
+              status: normalizeProblemStatus(data.problem.status),
             };
 
             setCurrentProblem(convertedProblem);
@@ -808,6 +824,7 @@ const ProblemSetting = () => {
               comments: [],
               created_at: problem.created_at,
               updated_at: problem.updated_at,
+              status: normalizeProblemStatus(problem.status),
             };
 
             setCurrentProblem(convertedProblem);
@@ -891,12 +908,12 @@ const ProblemSetting = () => {
           problem={currentProblem}
           isReadOnly={
             currentProblemType === 'published' &&
-            currentProblem?.status !== 'needs_revision'
+            currentProblem?.status !== 'review_changes_requested'
           }
           onSave={async (problem) => {
             if (
               currentProblemType === 'draft' ||
-              currentProblem?.status === 'needs_revision'
+              currentProblem?.status === 'review_changes_requested'
             ) {
               const isEditingExisting = Boolean(currentProblem);
 

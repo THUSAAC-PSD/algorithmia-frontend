@@ -7,6 +7,11 @@ import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 
+import {
+  normalizeProblemStatus,
+  ProblemStatus,
+} from '../../types/problem-status';
+
 interface MarkdownProps {
   children: string;
 }
@@ -68,18 +73,7 @@ export interface IProblem {
   updated_at: Date;
   base_problem_id?: string;
   author?: string;
-  status?:
-    | 'approve'
-    | 'approved'
-    | 'approved_for_testing'
-    | 'awaiting_final_check'
-    | 'completed'
-    | 'reject'
-    | 'rejected'
-    | 'needs_revision'
-    | 'needs_changes'
-    | 'pending_review'
-    | 'pending';
+  status?: ProblemStatus;
 }
 
 interface ProblemProps {
@@ -119,41 +113,37 @@ const Problem: React.FC<ProblemProps> = ({ problem, language }) => {
 
   // Get status badge for rendering
   const getStatusBadge = (status: string | undefined) => {
-    switch (status) {
-      case 'pending':
-      case 'pending_review':
-        return (
-          <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400">
-            {t('problem.statuses.pending')}
-          </span>
-        );
-      case 'approve':
-      case 'approved':
-      case 'approved_for_testing':
-      case 'awaiting_final_check':
-      case 'completed':
-        return (
-          <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400">
-            {t('problem.statuses.approved')}
-          </span>
-        );
-      case 'reject':
-      case 'rejected':
-        return (
-          <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400">
-            {t('problem.statuses.rejected')}
-          </span>
-        );
-      case 'needs_revision':
-      case 'needs_changes':
-        return (
-          <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-500/20 text-orange-400">
-            {t('problem.statuses.needs_changes')}
-          </span>
-        );
-      default:
-        return null;
-    }
+    const normalized = normalizeProblemStatus(status);
+
+    const statusStyles: Record<ProblemStatus, string> = {
+      draft: 'bg-slate-500/20 text-slate-300',
+      pending_review: 'bg-yellow-500/20 text-yellow-400',
+      review_changes_requested: 'bg-orange-500/20 text-orange-400',
+      pending_testing: 'bg-indigo-500/20 text-indigo-300',
+      testing_changes_requested: 'bg-purple-500/20 text-purple-300',
+      awaiting_final_check: 'bg-blue-500/20 text-blue-300',
+      completed: 'bg-green-500/20 text-green-400',
+      rejected: 'bg-red-500/20 text-red-400',
+    };
+
+    const labelKey: Record<ProblemStatus, string> = {
+      draft: 'problem.statuses.draft',
+      pending_review: 'problem.statuses.pending_review',
+      review_changes_requested: 'problem.statuses.review_changes_requested',
+      pending_testing: 'problem.statuses.pending_testing',
+      testing_changes_requested: 'problem.statuses.testing_changes_requested',
+      awaiting_final_check: 'problem.statuses.awaiting_final_check',
+      completed: 'problem.statuses.completed',
+      rejected: 'problem.statuses.rejected',
+    };
+
+    return (
+      <span
+        className={`px-2 py-1 rounded-full text-xs font-medium ${statusStyles[normalized]}`}
+      >
+        {t(labelKey[normalized])}
+      </span>
+    );
   };
 
   return (

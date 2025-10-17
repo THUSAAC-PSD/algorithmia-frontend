@@ -15,7 +15,14 @@
       "pending": "Pending",
       "approved": "Approved",
       "rejected": "Rejected",
-      "needs_changes": "Needs Changes"
+      "needs_changes": "Needs Changes",
+      "draft": "Draft",
+      "pending_review": "Pending Review",
+      "review_changes_requested": "Review Changes Requested",
+      "pending_testing": "Pending Testing",
+      "testing_changes_requested": "Testing Changes Requested",
+      "awaiting_final_check": "Awaiting Final Check",
+      "completed": "Completed"
     }
   },
   "problemDetail": {
@@ -70,16 +77,15 @@
     "sortBy": "Sort By",
     "title": "Problem Verification",
     "statuses": {
-      "pending": "Pending",
-      "approved": "Approved",
-      "rejected": "Rejected",
-      "needsChanges": "Needs Changes"
+      "pending_review": "Pending Review",
+      "review_changes_requested": "Review Changes Requested",
+      "pending_testing": "Pending Testing",
+      "testing_changes_requested": "Testing Changes Requested",
+      "awaiting_final_check": "Awaiting Final Check",
+      "completed": "Completed",
+      "rejected": "Rejected"
     },
     "allStatus": "All Statuses",
-    "pending": "Pending",
-    "approved": "Approved",
-    "rejected": "Rejected",
-    "needsChanges": "Needs Changes",
     "searchPlaceholder": "Search problems...",
     "noProblemsFound": "No problems found",
     "tryAdjustingFilters": "Try adjusting the filters",
@@ -111,11 +117,13 @@
     "sortBy": "Sort By",
     "title": "Problem Review",
     "statuses": {
-      "pending": "Pending",
-      "approved": "Approved",
-      "rejected": "Rejected",
-      "needsChanges": "Needs Changes",
-      "approvedForTesting": "Approved for Test"
+      "pending_review": "Pending Review",
+      "review_changes_requested": "Review Changes Requested",
+      "pending_testing": "Pending Testing",
+      "testing_changes_requested": "Testing Changes Requested",
+      "awaiting_final_check": "Awaiting Final Check",
+      "completed": "Completed",
+      "rejected": "Rejected"
     },
     "newestFirst": "Newest First",
     "oldestFirst": "Oldest First",

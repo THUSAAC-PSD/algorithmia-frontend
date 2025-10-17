@@ -10,6 +10,11 @@ import { useNavigate } from 'react-router-dom';
 
 import { IProblem } from '../../components/Problem';
 import { API_BASE_URL } from '../../config';
+import {
+  normalizeProblemStatus,
+  ProblemStatus,
+  VERIFICATION_STATUS_ORDER,
+} from '../../types/problem-status';
 
 interface ProblemApiResponse {
   problem_id: string;
@@ -44,6 +49,34 @@ interface ProblemApiResponse {
   author?: string;
 }
 
+const VERIFICATION_FILTER_STATUSES: ReadonlyArray<ProblemStatus> =
+  VERIFICATION_STATUS_ORDER.filter((status) => status !== 'draft');
+
+const getCanonicalProblemId = (
+  problem: Pick<IProblem, 'id' | 'base_problem_id'>,
+): string => problem.base_problem_id ?? problem.id;
+
+const dedupeProblems = (items: IProblem[]): IProblem[] =>
+  Array.from(
+    items
+      .reduce((map, problem) => {
+        const key = getCanonicalProblemId(problem);
+        const existing = map.get(key);
+
+        if (!existing) {
+          map.set(key, problem);
+          return map;
+        }
+
+        if (problem.updated_at.getTime() > existing.updated_at.getTime()) {
+          map.set(key, problem);
+        }
+
+        return map;
+      }, new Map<string, IProblem>())
+      .values(),
+  );
+
 const ProblemVerification = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -53,28 +86,10 @@ const ProblemVerification = () => {
   const [problems, setProblems] = useState<IProblem[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<'all' | ProblemStatus>(
+    'all',
+  );
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
-
-  // Map backend statuses to UI statuses used by filters/badges
-  const mapStatus = (status?: string): IProblem['status'] => {
-    switch (status) {
-      case 'pending_review':
-        return 'pending';
-      case 'approved_for_testing':
-      case 'awaiting_final_check':
-      case 'completed':
-      case 'approve':
-        return 'approved';
-      case 'needs_revision':
-        return 'needs_changes';
-      case 'rejected':
-      case 'reject':
-        return 'rejected';
-      default:
-        return (status as IProblem['status']) || 'pending';
-    }
-  };
 
   useEffect(() => {
     let isMounted = true;
@@ -101,7 +116,7 @@ const ProblemVerification = () => {
 
         if (isMounted) {
           // Transform published problems
-          const transformedProblems = Array.isArray(data?.problems)
+          const transformedProblems: IProblem[] = Array.isArray(data?.problems)
             ? data.problems.map((problem: ProblemApiResponse) => {
                 // Extract title from the array of language-title objects
                 const titleObj =
@@ -118,8 +133,23 @@ const ProblemVerification = () => {
                   display_name: d.display_name,
                 }));
 
+                const candidateIds = [
+                  (problem as { history_root_id?: string }).history_root_id,
+                  (problem as { root_problem_id?: string }).root_problem_id,
+                  (problem as { base_problem_id?: string }).base_problem_id,
+                  (problem as { origin_problem_id?: string }).origin_problem_id,
+                  (problem as { source_problem_id?: string }).source_problem_id,
+                ];
+
+                const baseProblemId =
+                  candidateIds.find(
+                    (value) =>
+                      typeof value === 'string' && value.trim().length > 0,
+                  ) || problem.problem_id;
+
                 return {
                   id: problem.problem_id,
+                  base_problem_id: baseProblemId,
                   problem_difficulty:
                     mappedDifficulty.length > 0
                       ? mappedDifficulty
@@ -141,12 +171,16 @@ const ProblemVerification = () => {
                   created_at: new Date(problem.created_at || Date.now()),
                   updated_at: new Date(problem.updated_at || Date.now()),
                   author: problem.creator?.username || 'Unknown',
-                  status: mapStatus(problem.status),
-                };
+                  status: normalizeProblemStatus(problem.status),
+                } as IProblem;
               })
             : [];
-          console.log('Fetched problems:', transformedProblems);
-          setProblems(transformedProblems);
+          const filteredProblems = transformedProblems.filter((problem) =>
+            VERIFICATION_FILTER_STATUSES.includes(problem.status ?? 'draft'),
+          );
+          const uniqueProblems = dedupeProblems(filteredProblems);
+          console.log('Fetched problems:', uniqueProblems);
+          setProblems(uniqueProblems);
         }
       } catch (error) {
         console.error('Error fetching problems:', error);
@@ -212,7 +246,7 @@ const ProblemVerification = () => {
 
   const handleStatusChange = async (
     problemId: string,
-    newStatus: IProblem['status'],
+    newStatus: ProblemStatus,
   ) => {
     try {
       // Send status change to server
@@ -253,35 +287,25 @@ const ProblemVerification = () => {
     }
   };
 
-  const getStatusBadge = (status: IProblem['status']) => {
-    switch (status) {
-      case 'pending_review':
-        return (
-          <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400">
-            {t('problemVerification.statuses.pending')}
-          </span>
-        );
-      case 'approve':
-        return (
-          <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400">
-            {t('problemVerification.statuses.approved')}
-          </span>
-        );
-      case 'reject':
-        return (
-          <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400">
-            {t('problemVerification.statuses.rejected')}
-          </span>
-        );
-      case 'needs_revision':
-        return (
-          <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-500/20 text-orange-400">
-            {t('problemVerification.statuses.needsChanges')}
-          </span>
-        );
-      default:
-        return null;
-    }
+  const getStatusBadge = (status: ProblemStatus) => {
+    const statusStyles: Record<ProblemStatus, string> = {
+      draft: 'bg-slate-500/20 text-slate-300',
+      pending_review: 'bg-yellow-500/20 text-yellow-400',
+      review_changes_requested: 'bg-orange-500/20 text-orange-400',
+      pending_testing: 'bg-indigo-500/20 text-indigo-300',
+      testing_changes_requested: 'bg-purple-500/20 text-purple-300',
+      awaiting_final_check: 'bg-blue-500/20 text-blue-300',
+      completed: 'bg-green-500/20 text-green-400',
+      rejected: 'bg-red-500/20 text-red-400',
+    };
+
+    return (
+      <span
+        className={`px-2 py-1 rounded-full text-xs font-medium ${statusStyles[status]}`}
+      >
+        {t(`problem.statuses.${status}`)}
+      </span>
+    );
   };
 
   const [feedbackText, setFeedbackText] = useState<string>('');
@@ -303,7 +327,7 @@ const ProblemVerification = () => {
           credentials: 'include',
           body: JSON.stringify({
             feedback: feedbackText,
-            status: 'needs_changes',
+            status: 'review_changes_requested',
           }),
         },
       );
@@ -315,7 +339,7 @@ const ProblemVerification = () => {
       }
 
       // Update local state
-      await handleStatusChange(activeTabId, 'needs_revision');
+      await handleStatusChange(activeTabId, 'review_changes_requested');
 
       toast.success(t('problemVerification.feedbackSubmitted'));
       setFeedbackText('');
@@ -365,22 +389,19 @@ const ProblemVerification = () => {
           </button>
           <select
             value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
+            onChange={(e) =>
+              setFilterStatus(
+                (e.target.value as ProblemStatus | 'all') ?? 'all',
+              )
+            }
             className="px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="all">{t('problemVerification.allStatus')}</option>
-            <option value="pending">
-              {t('problemVerification.statuses.pending')}
-            </option>
-            <option value="approved">
-              {t('problemVerification.statuses.approved')}
-            </option>
-            <option value="rejected">
-              {t('problemVerification.statuses.rejected')}
-            </option>
-            <option value="needs_changes">
-              {t('problemVerification.statuses.needsChanges')}
-            </option>
+            {VERIFICATION_FILTER_STATUSES.map((status) => (
+              <option key={status} value={status}>
+                {t(`problem.statuses.${status}`)}
+              </option>
+            ))}
           </select>
           <input
             type="text"
@@ -423,7 +444,7 @@ const ProblemVerification = () => {
                             t('problemVerification.untitledProblem')}
                         </h3>
                         <span className="ml-3">
-                          {getStatusBadge(problem.status)}
+                          {getStatusBadge(problem.status ?? 'draft')}
                         </span>
                       </div>
                       <div className="mt-2 text-sm text-slate-400 flex items-center space-x-4">

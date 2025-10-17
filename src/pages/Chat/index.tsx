@@ -1,9 +1,14 @@
 import { PaperAirplaneIcon } from '@heroicons/react/24/outline';
 import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { API_BASE_URL } from '../../config';
 import chatWebSocket from '../../services/chatWebSocket';
+import {
+  normalizeProblemStatus,
+  ProblemStatus,
+} from '../../types/problem-status';
 
 interface LanguageContent {
   language: string;
@@ -24,7 +29,7 @@ interface ProblemDifficulty {
 interface Problem {
   problem_id: string;
   title: LanguageContent[];
-  status: string;
+  status: ProblemStatus;
   creator: User;
   reviewer: User;
   testers: User[];
@@ -61,7 +66,7 @@ interface ReviewedMessagePayload {
     user_id: string;
     username: string;
   };
-  decision: 'approve' | 'reject' | 'needs_revision';
+  decision: ProblemStatus;
 }
 
 interface TestedMessagePayload {
@@ -102,6 +107,7 @@ type Message = UserMessage | ReviewedMessage | TestedMessage | SystemMessage;
 const Chat = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [activeProblem, setActiveProblem] = useState<string>('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
@@ -311,10 +317,7 @@ const Chat = () => {
               user_id: typedData.payload.reviewer?.id || '',
               username: typedData.payload.reviewer?.username || '',
             },
-            decision: typedData.payload.decision as
-              | 'approve'
-              | 'reject'
-              | 'needs_revision',
+            decision: normalizeProblemStatus(typedData.payload.decision),
           },
           timestamp: typedData.payload.timestamp,
         };
@@ -437,8 +440,14 @@ const Chat = () => {
           throw new Error('Failed to fetch problems');
         }
 
-        const data: { problems: Problem[] } = await response.json();
-        setProblems(data.problems);
+        const data: {
+          problems: Array<Omit<Problem, 'status'> & { status: string }>;
+        } = await response.json();
+        const normalizedProblems: Problem[] = data.problems.map((problem) => ({
+          ...problem,
+          status: normalizeProblemStatus(problem.status),
+        }));
+        setProblems(normalizedProblems);
 
         // Set default active problem if none is selected
         if (!activeProblem && data.problems.length > 0) {
@@ -516,9 +525,48 @@ const Chat = () => {
 
         const data = await response.json();
         if (Array.isArray(data.messages)) {
+          const normalizedMessages = (data.messages as unknown[])
+            .map((message) => {
+              if (
+                typeof message === 'object' &&
+                message !== null &&
+                'message_type' in message &&
+                (message as { message_type: unknown }).message_type ===
+                  'reviewed' &&
+                'payload' in message &&
+                typeof (message as { payload?: unknown }).payload ===
+                  'object' &&
+                (message as { payload?: unknown }).payload !== null
+              ) {
+                const reviewed = message as {
+                  message_type: 'reviewed';
+                  payload: {
+                    decision?: string | null;
+                    reviewer: ReviewedMessagePayload['reviewer'];
+                  } & Record<string, unknown>;
+                  timestamp: string;
+                };
+
+                return {
+                  ...reviewed,
+                  payload: {
+                    ...reviewed.payload,
+                    decision: normalizeProblemStatus(reviewed.payload.decision),
+                  },
+                } satisfies ReviewedMessage;
+              }
+
+              return message as Message;
+            })
+            .sort(
+              (a: Message, b: Message) =>
+                new Date(a.timestamp).getTime() -
+                new Date(b.timestamp).getTime(),
+            );
+
           setMessages((prev) => ({
             ...prev,
-            [activeProblem]: data.messages,
+            [activeProblem]: normalizedMessages,
           }));
         }
 
@@ -798,13 +846,18 @@ const Chat = () => {
                   );
                 } else if (msg.message_type === 'reviewed') {
                   const reviewedMsg = msg as ReviewedMessage;
-                  const decisionLabel =
+                  const decisionStatusLabel = t(
+                    `problem.statuses.${reviewedMsg.payload.decision}`,
                     {
-                      approve: 'approved',
-                      reject: 'rejected',
-                      needs_revision: 'requested revision for',
-                    }[reviewedMsg.payload.decision] ||
-                    reviewedMsg.payload.decision;
+                      defaultValue: reviewedMsg.payload.decision
+                        .split('_')
+                        .map(
+                          (segment) =>
+                            segment.charAt(0).toUpperCase() + segment.slice(1),
+                        )
+                        .join(' '),
+                    },
+                  );
 
                   return (
                     <div
@@ -815,7 +868,7 @@ const Chat = () => {
                         <span className="font-semibold">
                           {reviewedMsg.payload.reviewer.username}
                         </span>{' '}
-                        {decisionLabel} the problem
+                        changed the status to {decisionStatusLabel}
                         <div className="text-slate-400 mt-1">
                           {formattedDate} at {formattedTime}
                         </div>

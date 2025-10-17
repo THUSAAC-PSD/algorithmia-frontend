@@ -1,3 +1,5 @@
+import { ProblemStatus } from '../../types/problem-status';
+
 export interface Problem {
   problem_draft_id: string;
   details: ProblemDetails;
@@ -8,7 +10,7 @@ export interface Problem {
   comments: string[];
   created_at: string;
   updated_at: string;
-  status?: string;
+  status?: ProblemStatus;
   // Optional versions (for published problems) - newest first
   versions?: ProblemVersion[];
 }
@@ -29,7 +31,7 @@ export interface PublishedProblem {
     language: string;
     title: string;
   }[];
-  status: string;
+  status: ProblemStatus;
   creator?: {
     user_id: string;
     username: string;
@@ -91,7 +93,7 @@ export interface CombinedProblemListItem {
   id: string;
   type: ProblemType;
   title: string;
-  status: string;
+  status: ProblemStatus;
   created_at: string;
   updated_at: string;
   base_problem_id?: string;

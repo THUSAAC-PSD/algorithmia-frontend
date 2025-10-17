@@ -1,17 +1,18 @@
 import { ArrowsUpDownIcon, ClockIcon } from '@heroicons/react/24/outline';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 import { IProblem } from '../../components/Problem';
 import { API_BASE_URL } from '../../config';
+import {
+  normalizeProblemStatus,
+  ProblemStatus,
+  REVIEW_STATUS_ORDER,
+} from '../../types/problem-status';
 
-const REVIEWABLE_STATUSES: ReadonlyArray<IProblem['status']> = [
-  'pending',
-  'approved',
-  'rejected',
-  'needs_changes',
-];
+const REVIEWABLE_STATUSES: ReadonlyArray<ProblemStatus> =
+  REVIEW_STATUS_ORDER.filter((status) => status !== 'draft');
 
 const getCanonicalProblemId = (problem: IProblem): string =>
   problem.base_problem_id ?? problem.id;
@@ -43,35 +44,10 @@ const ProblemReview = () => {
   const [problems, setProblems] = useState<IProblem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'all' | IProblem['status']>(
+  const [filterStatus, setFilterStatus] = useState<'all' | ProblemStatus>(
     'all',
   );
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
-
-  // Map backend statuses to UI statuses used by filters/badges
-  const mapStatus = useCallback((status?: string): IProblem['status'] => {
-    switch (status) {
-      case 'pending_review':
-        return 'pending';
-      case 'approved_for_testing':
-      case 'awaiting_final_check':
-      case 'completed':
-        return 'approved';
-      case 'needs_revision':
-        return 'needs_changes';
-      case 'approve':
-        return 'approved';
-      case 'reject':
-        return 'rejected';
-      case 'needs_changes':
-      case 'approved':
-      case 'rejected':
-      case 'pending':
-        return status;
-      default:
-        return (status as IProblem['status']) || 'pending';
-    }
-  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -174,13 +150,15 @@ const ProblemReview = () => {
                     created_at: new Date(problem.created_at || Date.now()),
                     updated_at: new Date(problem.updated_at || Date.now()),
                     author: problem.creator?.username || 'Unknown',
-                    status: mapStatus(problem.status),
+                    status: normalizeProblemStatus(problem.status),
                   };
                 },
               )
             : [];
           const normalizedProblems = transformedProblems.filter((problem) =>
-            REVIEWABLE_STATUSES.includes(problem.status || 'pending'),
+            REVIEWABLE_STATUSES.includes(
+              normalizeProblemStatus(problem.status),
+            ),
           );
           const uniqueProblems = dedupeByCanonicalId(normalizedProblems);
 
@@ -205,7 +183,7 @@ const ProblemReview = () => {
     return () => {
       isMounted = false;
     };
-  }, [mapStatus]);
+  }, []);
 
   // Filter and sort problems
   const filteredAndSortedProblems = useMemo(() => {
@@ -214,7 +192,7 @@ const ProblemReview = () => {
     const filtered = problems.filter((problem) => {
       const title = problem.details[0]?.title || '';
       const author = problem.author || '';
-      const status = problem.status || 'pending';
+      const status = problem.status ?? 'pending_review';
       const matchesSearch =
         title.toLowerCase().includes(searchLower) ||
         author.toLowerCase().includes(searchLower);
@@ -246,35 +224,25 @@ const ProblemReview = () => {
 
   // Get status badge
   const getStatusBadge = (status: string | undefined) => {
-    const normalizedStatus = mapStatus(status);
-    switch (normalizedStatus) {
-      case 'pending':
-        return (
-          <span className="px-2 py-1 rounded-full text-xs font-medium bg-yellow-500/20 text-yellow-400">
-            {t('problemReview.statuses.pending')}
-          </span>
-        );
-      case 'approved':
-        return (
-          <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-500/20 text-green-400">
-            {t('problemReview.statuses.approved')}
-          </span>
-        );
-      case 'rejected':
-        return (
-          <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-500/20 text-red-400">
-            {t('problemReview.statuses.rejected')}
-          </span>
-        );
-      case 'needs_changes':
-        return (
-          <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-500/20 text-orange-400">
-            {t('problemReview.statuses.needsChanges')}
-          </span>
-        );
-      default:
-        return null;
-    }
+    const normalizedStatus = normalizeProblemStatus(status);
+    const statusStyles: Record<ProblemStatus, string> = {
+      draft: 'bg-slate-500/20 text-slate-300',
+      pending_review: 'bg-yellow-500/20 text-yellow-400',
+      review_changes_requested: 'bg-orange-500/20 text-orange-400',
+      pending_testing: 'bg-indigo-500/20 text-indigo-300',
+      testing_changes_requested: 'bg-purple-500/20 text-purple-300',
+      awaiting_final_check: 'bg-blue-500/20 text-blue-300',
+      completed: 'bg-green-500/20 text-green-400',
+      rejected: 'bg-red-500/20 text-red-400',
+    };
+
+    return (
+      <span
+        className={`px-2 py-1 rounded-full text-xs font-medium ${statusStyles[normalizedStatus]}`}
+      >
+        {t(`problem.statuses.${normalizedStatus}`)}
+      </span>
+    );
   };
 
   // Navigate to problem detail page
@@ -308,23 +276,18 @@ const ProblemReview = () => {
           <select
             value={filterStatus}
             onChange={(e) =>
-              setFilterStatus(e.target.value as 'all' | IProblem['status'])
+              setFilterStatus(
+                (e.target.value as ProblemStatus | 'all') ?? 'all',
+              )
             }
             className="px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="all">{t('problemReview.allStatus')}</option>
-            <option value="pending">
-              {t('problemReview.statuses.pending')}
-            </option>
-            <option value="approved">
-              {t('problemReview.statuses.approved')}
-            </option>
-            <option value="rejected">
-              {t('problemReview.statuses.rejected')}
-            </option>
-            <option value="needs_changes">
-              {t('problemReview.statuses.needsChanges')}
-            </option>
+            {REVIEWABLE_STATUSES.map((status) => (
+              <option key={status} value={status}>
+                {t(`problem.statuses.${status}`)}
+              </option>
+            ))}
           </select>
           <input
             type="text"

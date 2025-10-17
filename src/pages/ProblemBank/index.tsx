@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 
 import Problem, { IProblem } from '../../components/Problem';
 import { API_BASE_URL } from '../../config'; // added
+import { normalizeProblemStatus } from '../../types/problem-status';
 
 const ProblemBank = () => {
   const { t } = useTranslation();
@@ -105,8 +106,8 @@ const ProblemBank = () => {
                     created_at: new Date(problem.created_at || Date.now()),
                     updated_at: new Date(problem.updated_at || Date.now()),
                     author: problem.creator?.username || 'Unknown',
-                    status: problem.status || 'pending',
-                  };
+                    status: normalizeProblemStatus(problem.status),
+                  } as IProblem;
                 },
               )
             : [];
@@ -201,7 +202,7 @@ const ProblemBank = () => {
         created_at: new Date(data.problem.created_at || Date.now()),
         updated_at: new Date(data.problem.updated_at || Date.now()),
         author: data.problem.creator?.username || 'Unknown',
-        status: data.problem.status || 'pending',
+        status: normalizeProblemStatus(data.problem.status),
       };
 
       // Update the selected problem with full details

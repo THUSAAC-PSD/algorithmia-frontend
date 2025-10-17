@@ -1,6 +1,10 @@
 import { format, isToday, isYesterday } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 
+import {
+  normalizeProblemStatus,
+  ProblemStatus,
+} from '../../types/problem-status';
 import { CombinedProblemListItem, ProblemType } from './types';
 
 const formatTimestamp = (timestamp: string): string => {
@@ -57,6 +61,33 @@ const ProblemList: React.FC<ProblemListProps> = ({
   renderSortIndicator,
 }) => {
   const { t } = useTranslation();
+
+  const statusStyles: Record<ProblemStatus, string> = {
+    draft: 'bg-yellow-100 text-yellow-800',
+    pending_review: 'bg-blue-100 text-blue-800',
+    review_changes_requested: 'bg-orange-100 text-orange-800',
+    pending_testing: 'bg-indigo-100 text-indigo-800',
+    testing_changes_requested: 'bg-purple-100 text-purple-800',
+    awaiting_final_check: 'bg-sky-100 text-sky-800',
+    completed: 'bg-green-100 text-green-800',
+    rejected: 'bg-red-100 text-red-800',
+  };
+
+  const submitEligibleStatuses = new Set<ProblemStatus>([
+    'draft',
+    'review_changes_requested',
+    'testing_changes_requested',
+  ]);
+
+  const chatEligibleStatuses = new Set<ProblemStatus>([
+    'pending_review',
+    'review_changes_requested',
+    'pending_testing',
+    'testing_changes_requested',
+    'awaiting_final_check',
+    'completed',
+    'rejected',
+  ]);
 
   // Define sortable columns
   const sortableColumns: Array<{
@@ -163,21 +194,26 @@ const ProblemList: React.FC<ProblemListProps> = ({
                     {formatTimestamp(problem.updated_at)}
                   </td>
                   <td className="px-6 py-4 text-sm">
-                    <span
-                      className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        problem.status === 'draft'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : problem.status === 'submitted'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-blue-100 text-blue-800'
-                      }`}
-                    >
-                      {t(`problemList.${problem.status}`)}
-                    </span>
+                    {(() => {
+                      const normalizedStatus = normalizeProblemStatus(
+                        problem.status,
+                      );
+                      const labelKey = `problem.statuses.${normalizedStatus}`;
+
+                      return (
+                        <span
+                          className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${statusStyles[normalizedStatus]}`}
+                        >
+                          {t(labelKey)}
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td className="px-6 py-4 text-sm flex space-x-2">
-                    {(problem.status === 'draft' ||
-                      problem.status === 'needs_revision') && (
+                    {(submitEligibleStatuses.has(problem.status) ||
+                      submitEligibleStatuses.has(
+                        normalizeProblemStatus(problem.status),
+                      )) && (
                       <button
                         onClick={() => onSubmitProblem(problem.id)}
                         className="px-3 py-1 bg-indigo-500 hover:bg-indigo-600 rounded text-white text-xs"
@@ -217,7 +253,10 @@ const ProblemList: React.FC<ProblemListProps> = ({
                         {t('problemList.view')}
                       </button>
                     )}
-                    {(problem.status === 'submitted' ||
+                    {(chatEligibleStatuses.has(problem.status) ||
+                      chatEligibleStatuses.has(
+                        normalizeProblemStatus(problem.status),
+                      ) ||
                       problem.type === 'published') && (
                       <button
                         onClick={() => onNavigateToChat(problem.id)}

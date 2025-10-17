@@ -11,6 +11,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { EditorRef, MilkdownEditorWrapper } from '../../components/Editor';
 import Problem, { IProblem } from '../../components/Problem';
 import { API_BASE_URL } from '../../config'; // added
+import {
+  normalizeProblemStatus,
+  ProblemStatus,
+} from '../../types/problem-status';
 
 const ProblemVerificationDetail = () => {
   const { t } = useTranslation();
@@ -18,9 +22,9 @@ const ProblemVerificationDetail = () => {
   const navigate = useNavigate();
   const [problem, setProblem] = useState<IProblem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedStatus, setSelectedStatus] = useState<
-    IProblem['status'] | null
-  >(null);
+  const [selectedStatus, setSelectedStatus] = useState<ProblemStatus | null>(
+    null,
+  );
   const editorRef = useRef<EditorRef>(null);
 
   useEffect(() => {
@@ -94,7 +98,7 @@ const ProblemVerificationDetail = () => {
           created_at: new Date(data.problem.created_at || Date.now()),
           updated_at: new Date(data.problem.updated_at || Date.now()),
           author: data.problem.creator?.username || 'Unknown',
-          status: data.problem.status || 'pending',
+          status: normalizeProblemStatus(data.problem.status),
         };
 
         setProblem(convertedProblem);
@@ -108,7 +112,7 @@ const ProblemVerificationDetail = () => {
     fetchProblem();
   }, [id]);
 
-  const handleStatusSelect = (status: IProblem['status'] | null) => {
+  const handleStatusSelect = (status: ProblemStatus | null) => {
     setSelectedStatus(status);
   };
 
@@ -134,7 +138,8 @@ const ProblemVerificationDetail = () => {
           credentials: 'include',
           body: JSON.stringify({
             comment: editorContent,
-            status: selectedStatus === 'approve' ? 'passed' : 'failed',
+            status:
+              selectedStatus === 'awaiting_final_check' ? 'passed' : 'failed',
           }),
         },
       );
@@ -229,24 +234,24 @@ const ProblemVerificationDetail = () => {
             <div className="flex space-x-4">
               <button
                 className={`flex items-center px-4 py-2 rounded-lg border ${
-                  selectedStatus === 'approve'
+                  selectedStatus === 'awaiting_final_check'
                     ? 'bg-green-500/20 text-green-300 border-green-500'
                     : 'bg-slate-700 text-slate-300 border-slate-600 hover:bg-slate-600'
                 }`}
                 type="button"
-                onClick={() => handleStatusSelect('approve')}
+                onClick={() => handleStatusSelect('awaiting_final_check')}
               >
                 <CheckCircleIcon className="w-5 h-5 mr-2" />
                 {t('problemVerificationDetail.approve')}
               </button>
               <button
                 className={`flex items-center px-4 py-2 rounded-lg border ${
-                  selectedStatus === 'needs_revision'
+                  selectedStatus === 'testing_changes_requested'
                     ? 'bg-orange-500/20 text-orange-300 border-orange-500'
                     : 'bg-slate-700 text-slate-300 border-slate-600 hover:bg-slate-600'
                 }`}
                 type="button"
-                onClick={() => handleStatusSelect('needs_revision')}
+                onClick={() => handleStatusSelect('testing_changes_requested')}
               >
                 <PencilIcon className="w-5 h-5 mr-2" />
                 {t('problemVerificationDetail.requestChanges')}
