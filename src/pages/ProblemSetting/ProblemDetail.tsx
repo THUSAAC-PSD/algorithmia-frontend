@@ -32,6 +32,12 @@ interface ProblemFormProps {
   onCancel: () => void;
 }
 
+type SampleRow = {
+  id: string;
+  input: string;
+  output: string;
+};
+
 const ProblemDetail = ({
   problem,
   isReadOnly = false,
@@ -50,14 +56,33 @@ const ProblemDetail = ({
   const output_format_ref = useRef<EditorRef>(null);
   const note_ref = useRef<EditorRef>(null);
 
-  // If versions exist, default samples and fields to the selected version
-  const initialSamples =
-    problem?.versions && problem.versions.length > 0
-      ? problem.versions[0].examples
-      : problem?.examples || [{ input: '', output: '' }];
+  const createSampleRow = (
+    sample?: { input?: string; output?: string } | null,
+  ): SampleRow => ({
+    id: crypto.randomUUID(),
+    input: sample?.input ?? '',
+    output: sample?.output ?? '',
+  });
 
-  const [samples, setSamples] =
-    useState<Array<{ input: string; output: string }>>(initialSamples);
+  const normalizeSamples = (
+    source?: Array<{ input: string; output: string }> | null,
+  ): SampleRow[] => {
+    if (!Array.isArray(source) || source.length === 0) {
+      return [createSampleRow()];
+    }
+    return source.map((sample) => createSampleRow(sample));
+  };
+
+  const [samples, setSamples] = useState<SampleRow[]>(() => {
+    if (problem?.versions && problem.versions.length > 0) {
+      const firstVersion = problem.versions[0];
+      return normalizeSamples(
+        (firstVersion?.examples as Array<{ input: string; output: string }>) ||
+          [],
+      );
+    }
+    return normalizeSamples(problem?.examples || []);
+  });
 
   const [difficulty, setDifficulty] = useState<string>(
     problem?.problem_difficulty_id || '',
@@ -89,7 +114,12 @@ const ProblemDetail = ({
           setLanguage(enDetails.language || 'en-US');
           // Update editors via refs by setting defaultValue prop is not possible after mount,
           // but we can set samples and difficulty/contest fields that are plain inputs
-          setSamples(version.examples || [{ input: '', output: '' }]);
+          setSamples(
+            normalizeSamples(
+              (version.examples as Array<{ input: string; output: string }>) ||
+                [],
+            ),
+          );
           setDifficulty(
             version.problem_difficulty?.problem_difficulty_id || '',
           );
@@ -99,7 +129,11 @@ const ProblemDetail = ({
       // No versions: fall back to problem props
       setTitle(problem?.details.title || '');
       setLanguage(problem?.details.language || 'en-US');
-      setSamples(problem?.examples || [{ input: '', output: '' }]);
+      setSamples(
+        normalizeSamples(
+          (problem?.examples as Array<{ input: string; output: string }>) || [],
+        ),
+      );
       setDifficulty(problem?.problem_difficulty_id || '');
     }
   }, [problem, selectedVersionIndex]);
@@ -166,7 +200,7 @@ const ProblemDetail = ({
         output_format: output_format_ref.current?.getContent() || '',
         note: note_ref.current?.getContent() || '',
       },
-      examples: samples,
+      examples: samples.map(({ input, output }) => ({ input, output })),
       problem_difficulty_id: difficulty,
       is_submitted: false,
       target_contest_id: contest,
@@ -178,15 +212,16 @@ const ProblemDetail = ({
   };
 
   const addSample = () => {
-    setSamples([...samples, { input: '', output: '' }]);
+    setSamples((prev) => [...prev, createSampleRow()]);
   };
 
   const removeSample = (index: number) => {
-    if (samples.length > 1) {
-      const newSamples = [...samples];
-      newSamples.splice(index, 1);
-      setSamples(newSamples);
-    }
+    setSamples((prev) => {
+      if (prev.length <= 1) {
+        return prev;
+      }
+      return prev.filter((_, idx) => idx !== index);
+    });
   };
 
   const updateSample = (
@@ -194,9 +229,11 @@ const ProblemDetail = ({
     field: 'input' | 'output',
     value: string,
   ) => {
-    const newSamples = [...samples];
-    newSamples[index][field] = value;
-    setSamples(newSamples);
+    setSamples((prev) =>
+      prev.map((sample, idx) =>
+        idx === index ? { ...sample, [field]: value } : sample,
+      ),
+    );
   };
 
   const getDifficultyName = (id: string): string => {
@@ -351,7 +388,7 @@ const ProblemDetail = ({
 
             {samples.map((sample, index) => (
               <div
-                key={`sample-${sample.input}-${sample.output}`}
+                key={sample.id}
                 className="border border-slate-600 rounded-md p-4 mb-4 bg-slate-800"
               >
                 <div className="flex justify-between items-center mb-3">

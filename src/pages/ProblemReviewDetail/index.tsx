@@ -10,6 +10,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import Problem, { IProblem } from '../../components/Problem';
 import { API_BASE_URL } from '../../config'; // added
+import { normalizeProblemStatus } from '../../types/problem-status';
 
 // Interface for tester users
 interface Tester {
@@ -123,10 +124,7 @@ const ProblemReviewDetail = () => {
           created_at: new Date(data.problem.created_at || Date.now()),
           updated_at: new Date(data.problem.updated_at || Date.now()),
           author: data.problem.creator?.username || 'Unknown',
-          status:
-            (data.problem.status === 'pending_review'
-              ? 'pending'
-              : data.problem.status) || 'pending',
+          status: normalizeProblemStatus(data.problem.status),
         };
         setProblem(convertedProblem);
 
@@ -471,7 +469,7 @@ const ProblemReviewDetail = () => {
           )}
 
           <div className="flex justify-end space-x-3">
-            {problem && problem.status === 'approve' && (
+            {problem && problem.status === 'awaiting_final_check' && (
               <button
                 className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
                 onClick={handleMarkAsCompleted}
