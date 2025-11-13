@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 
 import { API_BASE_URL } from '../../config';
+import { safeJsonParse } from '../../utils/api';
 
 const EmailVerificationPage = () => {
   const [searchParams] = useSearchParams();
@@ -38,6 +39,8 @@ const EmailVerificationPage = () => {
           credentials: 'include',
         });
 
+        const data = await safeJsonParse<{ message?: string }>(response);
+
         if (response.ok) {
           setStatus('success');
           setMessage(
@@ -51,22 +54,22 @@ const EmailVerificationPage = () => {
             window.location.href = '/';
           }, 2000);
         } else {
-          const errorData = await response.json();
           if (response.status === 410 || response.status === 422) {
             setStatus('expired');
             setMessage('Verification link has expired. Please register again.');
           } else {
             setStatus('error');
             setMessage(
-              errorData.message ||
-                'Email verification failed. Please try again.',
+              data.message || 'Email verification failed. Please try again.',
             );
           }
         }
-      } catch {
+      } catch (error) {
         setStatus('error');
         setMessage(
-          'Network error. Please check your connection and try again.',
+          error instanceof Error
+            ? error.message
+            : 'Network error. Please check your connection and try again.',
         );
       }
     };
@@ -76,22 +79,27 @@ const EmailVerificationPage = () => {
 
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center px-4">
-      <div className="bg-slate-800 p-8 rounded-lg shadow-lg max-w-md w-full text-center">
+      <div className="bg-slate-800 p-8 rounded-lg shadow-lg max-w-md w-full text-center animate-fadeIn">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-white mb-2">邮箱验证</h1>
+          <h1 className="text-2xl font-bold text-white mb-6">邮箱验证</h1>
 
           {status === 'loading' && (
-            <div className="flex items-center justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-              <span className="ml-3 text-slate-300">验证中...</span>
+            <div className="flex flex-col items-center justify-center py-8 space-y-4">
+              <div className="relative">
+                <div className="animate-spin rounded-full h-16 w-16 border-4 border-slate-600 border-t-indigo-600"></div>
+                <div className="absolute inset-0 rounded-full h-16 w-16 border-4 border-transparent border-t-indigo-400 animate-ping"></div>
+              </div>
+              <span className="text-slate-300 text-lg animate-pulse">
+                验证中，请稍候...
+              </span>
             </div>
           )}
 
           {status === 'success' && (
-            <div className="text-center">
-              <div className="mx-auto mb-4 w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+            <div className="text-center animate-fadeIn">
+              <div className="mx-auto mb-6 w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center animate-scaleIn">
                 <svg
-                  className="w-8 h-8 text-green-600"
+                  className="w-12 h-12 text-green-400 animate-checkmark"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -99,21 +107,28 @@ const EmailVerificationPage = () => {
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    strokeWidth={2}
+                    strokeWidth={3}
                     d="M5 13l4 4L19 7"
                   />
                 </svg>
               </div>
-              <p className="text-green-400 mb-4">{message}</p>
-              <p className="text-slate-400 text-sm">正在跳转到首页...</p>
+              <p className="text-green-400 text-lg font-medium mb-3">
+                {message}
+              </p>
+              <div className="flex items-center justify-center space-x-1 text-slate-400 text-sm">
+                <span>正在跳转到首页</span>
+                <span className="animate-bounce">.</span>
+                <span className="animate-bounce delay-100">.</span>
+                <span className="animate-bounce delay-200">.</span>
+              </div>
             </div>
           )}
 
           {status === 'error' && (
-            <div className="text-center">
-              <div className="mx-auto mb-4 w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+            <div className="text-center animate-fadeIn">
+              <div className="mx-auto mb-6 w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center animate-scaleIn">
                 <svg
-                  className="w-8 h-8 text-red-600"
+                  className="w-12 h-12 text-red-400"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -121,22 +136,22 @@ const EmailVerificationPage = () => {
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    strokeWidth={2}
+                    strokeWidth={3}
                     d="M6 18L18 6M6 6l12 12"
                   />
                 </svg>
               </div>
-              <p className="text-red-400 mb-6">{message}</p>
+              <p className="text-red-400 mb-8 text-lg">{message}</p>
               <div className="space-y-3">
                 <Link
                   to="/signup"
-                  className="block w-full px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition duration-200"
+                  className="block w-full px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all duration-200 transform hover:scale-105 font-medium"
                 >
                   重新注册
                 </Link>
                 <Link
                   to="/"
-                  className="block w-full px-4 py-2 bg-slate-600 text-white rounded hover:bg-slate-700 transition duration-200"
+                  className="block w-full px-6 py-3 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-all duration-200 transform hover:scale-105 font-medium"
                 >
                   返回首页
                 </Link>
@@ -145,10 +160,10 @@ const EmailVerificationPage = () => {
           )}
 
           {status === 'expired' && (
-            <div className="text-center">
-              <div className="mx-auto mb-4 w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center">
+            <div className="text-center animate-fadeIn">
+              <div className="mx-auto mb-6 w-20 h-20 bg-yellow-500/20 rounded-full flex items-center justify-center animate-scaleIn">
                 <svg
-                  className="w-8 h-8 text-yellow-600"
+                  className="w-12 h-12 text-yellow-400"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -161,10 +176,10 @@ const EmailVerificationPage = () => {
                   />
                 </svg>
               </div>
-              <p className="text-yellow-400 mb-6">{message}</p>
+              <p className="text-yellow-400 mb-8 text-lg">{message}</p>
               <Link
                 to="/signup"
-                className="block w-full px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition duration-200"
+                className="block w-full px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all duration-200 transform hover:scale-105 font-medium"
               >
                 重新注册
               </Link>
@@ -172,6 +187,63 @@ const EmailVerificationPage = () => {
           )}
         </div>
       </div>
+
+      <style>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes scaleIn {
+          from {
+            transform: scale(0);
+            opacity: 0;
+          }
+          to {
+            transform: scale(1);
+            opacity: 1;
+          }
+        }
+
+        @keyframes checkmark {
+          0% {
+            stroke-dashoffset: 100;
+            stroke-dasharray: 100;
+          }
+          100% {
+            stroke-dashoffset: 0;
+            stroke-dasharray: 100;
+          }
+        }
+
+        .animate-fadeIn {
+          animation: fadeIn 0.5s ease-out;
+        }
+
+        .animate-scaleIn {
+          animation: scaleIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .animate-checkmark {
+          stroke-dasharray: 100;
+          stroke-dashoffset: 100;
+          animation: checkmark 0.6s ease-out 0.2s forwards;
+        }
+
+        .delay-100 {
+          animation-delay: 0.1s;
+        }
+
+        .delay-200 {
+          animation-delay: 0.2s;
+        }
+      `}</style>
     </div>
   );
 };

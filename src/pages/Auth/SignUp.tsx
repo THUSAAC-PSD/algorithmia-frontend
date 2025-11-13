@@ -8,11 +8,13 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import SuccessCheck from '../../components/animations/SuccessCheck';
+import { safeJsonParse } from '../../utils/api';
 
 const SignUp = () => {
   const API_BASE_URL =
     import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-  console.log(API_BASE_URL);
+  const REQUIRE_EMAIL_VERIFICATION =
+    import.meta.env.REQUIRE_EMAIL_VERIFICATION === 'true';
   const [step, setStep] = useState<'email' | 'verification'>('email');
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
@@ -25,15 +27,71 @@ const SignUp = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showSuccessAnim, setShowSuccessAnim] = useState(false);
+  const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
+  const [usernameError, setUsernameError] = useState('');
   const navigate = useNavigate();
 
+  // Validate password strength
   useEffect(() => {
-    setError(password === confirmPassword ? '' : 'Passwords do not match');
-  }, [password, confirmPassword]);
-  const requestVerificationCode = async () => {
-    if (error) return;
+    if (!password) {
+      setPasswordErrors([]);
+      return;
+    }
 
+    const errors: string[] = [];
+    if (password.length < 8) {
+      errors.push('Password must be at least 8 characters');
+    }
+    if (password !== confirmPassword && confirmPassword) {
+      errors.push('Passwords do not match');
+    }
+    setPasswordErrors(errors);
+  }, [password, confirmPassword]);
+
+  // Validate username
+  useEffect(() => {
+    if (!username) {
+      setUsernameError('');
+      return;
+    }
+
+    if (username.length < 5) {
+      setUsernameError('Username must be at least 5 characters');
+    } else {
+      setUsernameError('');
+    }
+  }, [username]);
+
+  useEffect(() => {
+    if (passwordErrors.length > 0) {
+      setError(passwordErrors[0]);
+    } else if (usernameError) {
+      setError(usernameError);
+    } else {
+      setError('');
+    }
+  }, [passwordErrors, usernameError]);
+  const requestVerificationCode = async () => {
+    // Clear previous errors
     setError('');
+    setSuccess('');
+
+    // Validate before sending request
+    if (username.length < 5) {
+      setError('Username must be at least 5 characters');
+      return;
+    }
+
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
     setIsVerifying(true);
 
     try {
@@ -47,10 +105,35 @@ const SignUp = () => {
         body: JSON.stringify({ email, username, password }),
       });
 
-      const data = await response.json();
+      // Use safe JSON parsing to handle empty responses
+      const data = await safeJsonParse<{ message?: string; code?: string }>(
+        response,
+      );
 
       if (!response.ok) {
-        throw new Error(data.message || 'Failed to send verification code');
+        // Handle specific error messages from backend
+        let errorMessage = data.message || 'Failed to send verification code';
+
+        // Parse validation errors
+        if (errorMessage.includes("'Password' failed on the 'min' tag")) {
+          errorMessage = 'Password must be at least 8 characters';
+        } else if (
+          errorMessage.includes("'Username' failed on the 'min' tag")
+        ) {
+          errorMessage = 'Username must be at least 5 characters';
+        } else if (errorMessage.includes('email')) {
+          errorMessage = 'Invalid email address';
+        }
+
+        throw new Error(errorMessage);
+      }
+
+      // Check if we're in development mode (backend returns code directly)
+      if (data.code) {
+        // In development mode, skip email verification step and directly register
+        setVerificationCode(data.code);
+        await registerUser(data.code);
+        return;
       }
 
       setSuccess('Verification code sent to your email');
@@ -68,6 +151,52 @@ const SignUp = () => {
       );
     } finally {
       setIsVerifying(false);
+    }
+  };
+
+  const registerUser = async (code: string) => {
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          username,
+          email,
+          password,
+          email_verification_code: code,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to create account');
+      }
+
+      localStorage.setItem('isLoggedIn', 'true');
+
+      // Dispatch auth-changed event to trigger App.tsx to re-check auth status
+      window.dispatchEvent(new Event('auth-changed'));
+
+      // Small delay to allow the event to be processed before navigation
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      navigate('/');
+    } catch (error) {
+      localStorage.setItem('isLoggedIn', 'false');
+      setError(
+        error instanceof Error
+          ? error.message
+          : 'Failed to create account. Please try again.',
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -90,41 +219,7 @@ const SignUp = () => {
       return;
     }
 
-    setIsLoading(true);
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          // backend expects these exact keys per internal/user/feature/register/command.go
-          username,
-          email,
-          password,
-          email_verification_code: verificationCode,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to create account');
-      }
-      localStorage.setItem('isLoggedIn', 'true');
-
-      navigate('/');
-    } catch (error) {
-      localStorage.setItem('isLoggedIn', 'false');
-      setError(
-        error instanceof Error
-          ? error.message
-          : 'Failed to create account. Please try again.',
-      );
-    } finally {
-      setIsLoading(false);
-    }
+    await registerUser(verificationCode);
   };
 
   return (
@@ -181,12 +276,39 @@ const SignUp = () => {
                     type="text"
                     autoComplete="username"
                     required
+                    minLength={5}
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="appearance-none relative block w-full pl-10 pr-3 py-3 bg-slate-700 border border-slate-600 placeholder-slate-400 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    placeholder="Username"
+                    className={`appearance-none relative block w-full pl-10 pr-3 py-3 bg-slate-700 border ${
+                      username && usernameError
+                        ? 'border-red-500 focus:ring-red-500'
+                        : username && !usernameError
+                          ? 'border-green-500 focus:ring-green-500'
+                          : 'border-slate-600 focus:ring-indigo-500'
+                    } placeholder-slate-400 text-white rounded-lg focus:outline-none focus:ring-2 focus:border-transparent`}
+                    placeholder="Username (min. 5 characters)"
                   />
+                  {username && !usernameError && (
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                      <svg
+                        className="h-5 w-5 text-green-500"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M5 13l4 4L19 7"
+                        />
+                      </svg>
+                    </div>
+                  )}
                 </div>
+                {username && usernameError && (
+                  <p className="mt-1 text-xs text-red-400">{usernameError}</p>
+                )}
               </div>
 
               <div>
@@ -247,12 +369,43 @@ const SignUp = () => {
                     type="password"
                     autoComplete="new-password"
                     required
+                    minLength={8}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="appearance-none relative block w-full pl-10 pr-3 py-3 bg-slate-700 border border-slate-600 placeholder-slate-400 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                    placeholder="Password"
+                    className={`appearance-none relative block w-full pl-10 pr-3 py-3 bg-slate-700 border ${
+                      password && passwordErrors.length > 0
+                        ? 'border-red-500 focus:ring-red-500'
+                        : password && password.length >= 8
+                          ? 'border-green-500 focus:ring-green-500'
+                          : 'border-slate-600 focus:ring-indigo-500'
+                    } placeholder-slate-400 text-white rounded-lg focus:outline-none focus:ring-2 focus:border-transparent`}
+                    placeholder="Password (min. 8 characters)"
                   />
+                  {password &&
+                    password.length >= 8 &&
+                    passwordErrors.length === 0 && (
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <svg
+                          className="h-5 w-5 text-green-500"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                      </div>
+                    )}
                 </div>
+                {password && password.length < 8 && (
+                  <p className="mt-1 text-xs text-red-400">
+                    Password must be at least 8 characters
+                  </p>
+                )}
               </div>
 
               <div>
@@ -271,10 +424,42 @@ const SignUp = () => {
                     required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="appearance-none relative block w-full pl-10 pr-3 py-3 bg-slate-700 border border-slate-600 placeholder-slate-400 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className={`appearance-none relative block w-full pl-10 pr-3 py-3 bg-slate-700 border ${
+                      confirmPassword && password !== confirmPassword
+                        ? 'border-red-500 focus:ring-red-500'
+                        : confirmPassword &&
+                            password === confirmPassword &&
+                            password.length >= 8
+                          ? 'border-green-500 focus:ring-green-500'
+                          : 'border-slate-600 focus:ring-indigo-500'
+                    } placeholder-slate-400 text-white rounded-lg focus:outline-none focus:ring-2 focus:border-transparent`}
                     placeholder="Confirm password"
                   />
+                  {confirmPassword &&
+                    password === confirmPassword &&
+                    password.length >= 8 && (
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                        <svg
+                          className="h-5 w-5 text-green-500"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M5 13l4 4L19 7"
+                          />
+                        </svg>
+                      </div>
+                    )}
                 </div>
+                {confirmPassword && password !== confirmPassword && (
+                  <p className="mt-1 text-xs text-red-400">
+                    Passwords do not match
+                  </p>
+                )}
               </div>
             </>
           ) : (
@@ -328,7 +513,9 @@ const SignUp = () => {
                 : isVerifying
                   ? 'Sending code...'
                   : step === 'email'
-                    ? 'Request Verification Code'
+                    ? REQUIRE_EMAIL_VERIFICATION
+                      ? 'Request Verification Code'
+                      : 'Sign Up'
                     : 'Complete Sign Up'}
             </button>
           </div>

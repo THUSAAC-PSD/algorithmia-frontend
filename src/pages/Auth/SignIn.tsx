@@ -56,8 +56,13 @@ const SignIn = () => {
         localStorage.setItem('userName', data.user.username || data.user.email);
       }
 
+      // Dispatch auth-changed event to trigger App.tsx to re-check auth status
+      window.dispatchEvent(new Event('auth-changed'));
+
+      // Small delay to allow the event to be processed before navigation
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
       navigate('/');
-      window.location.reload();
     } catch (error) {
       setError(
         error instanceof Error
