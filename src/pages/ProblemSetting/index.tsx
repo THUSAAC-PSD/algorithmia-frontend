@@ -1,4 +1,10 @@
-import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
+import {
+  ChevronDownIcon,
+  ChevronUpIcon,
+  ExclamationTriangleIcon,
+  PaperAirplaneIcon,
+  TrashIcon,
+} from '@heroicons/react/24/outline';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
@@ -486,14 +492,38 @@ const ProblemSetting = () => {
 
     toast(
       (t) => (
-        <div className="flex flex-col gap-2">
-          <p>Are you sure you want to delete "{problemTitle}"?</p>
-          <p className="text-gray-400 text-sm">This action cannot be undone.</p>
-          <div className="flex gap-2 mt-2 justify-end">
+        <div className="flex flex-col gap-4 min-w-[400px]">
+          {/* Header with icon */}
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+              <TrashIcon className="w-5 h-5 text-red-600 dark:text-red-400" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
+                Delete Problem?
+              </h3>
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                <span className="font-medium">"{problemTitle}"</span>
+              </p>
+            </div>
+          </div>
+
+          {/* Warning message */}
+          <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+            <ExclamationTriangleIcon className="w-5 h-5 text-red-600 dark:text-red-500 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-red-800 dark:text-red-200">
+              This action{' '}
+              <span className="font-semibold">cannot be undone</span>. All
+              problem data will be permanently deleted.
+            </p>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex gap-3 justify-end">
             <button
               type="button"
               onClick={() => toast.dismiss(t.id)}
-              className="px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-white"
+              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-lg text-gray-900 dark:text-gray-100 font-medium transition-colors duration-200"
             >
               Cancel
             </button>
@@ -546,14 +576,21 @@ const ProblemSetting = () => {
                     setIsLoading(false);
                   });
               }}
-              className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded text-white"
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 rounded-lg text-white font-medium transition-colors duration-200 shadow-sm hover:shadow-md flex items-center gap-2"
             >
+              <TrashIcon className="w-4 h-4" />
               Delete
             </button>
           </div>
         </div>
       ),
-      { duration: 10000 },
+      {
+        duration: 15000,
+        style: {
+          maxWidth: '500px',
+          padding: '20px',
+        },
+      },
     );
   };
 
@@ -565,17 +602,37 @@ const ProblemSetting = () => {
     // Custom confirm dialog using toast
     toast(
       (t) => (
-        <div className="flex flex-col gap-2">
-          <p>Are you sure you want to submit "{problemTitle}"?</p>
-          <p className="text-gray-400 text-sm">
-            Once submitted, the problem will be sent for review and cannot be
-            modified further.
-          </p>
-          <div className="flex gap-2 mt-2 justify-end">
+        <div className="flex flex-col gap-4 min-w-[400px]">
+          {/* Header with icon */}
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center">
+              <PaperAirplaneIcon className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
+                Submit Problem for Review?
+              </h3>
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                <span className="font-medium">"{problemTitle}"</span>
+              </p>
+            </div>
+          </div>
+
+          {/* Warning message */}
+          <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+            <ExclamationTriangleIcon className="w-5 h-5 text-amber-600 dark:text-amber-500 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-amber-800 dark:text-amber-200">
+              Once submitted, the problem will be sent for review and{' '}
+              <span className="font-semibold">cannot be modified further</span>.
+            </p>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex gap-3 justify-end">
             <button
               type="button"
               onClick={() => toast.dismiss(t.id)}
-              className="px-3 py-1 bg-slate-700 hover:bg-slate-600 rounded text-white"
+              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-lg text-gray-900 dark:text-gray-100 font-medium transition-colors duration-200"
             >
               Cancel
             </button>
@@ -585,14 +642,21 @@ const ProblemSetting = () => {
                 toast.dismiss(t.id);
                 submitProblem(id);
               }}
-              className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 rounded text-white"
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 rounded-lg text-white font-medium transition-colors duration-200 shadow-sm hover:shadow-md flex items-center gap-2"
             >
+              <PaperAirplaneIcon className="w-4 h-4" />
               Submit
             </button>
           </div>
         </div>
       ),
-      { duration: 10000 },
+      {
+        duration: 15000,
+        style: {
+          maxWidth: '500px',
+          padding: '20px',
+        },
+      },
     );
   };
 
