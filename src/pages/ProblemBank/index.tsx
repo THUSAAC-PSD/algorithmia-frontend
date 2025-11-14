@@ -6,6 +6,7 @@ import {
   XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 
 import Problem, { IProblem } from '../../components/Problem';
@@ -291,7 +292,7 @@ const ProblemBank = () => {
       selectedProblemIds.has(p.id),
     );
     if (selectedProblems.length === 0) {
-      alert(t('problemBank.alertSelectAtLeastOne'));
+      toast.warning(t('problemBank.alertSelectAtLeastOne'));
       return;
     }
 
@@ -404,7 +405,7 @@ const ProblemBank = () => {
       setShowExportOptions(false);
     } catch (error) {
       console.error('Error exporting detailed problems:', error);
-      alert(t('problemBank.exportError') || 'Failed to export problems');
+      toast.error(t('problemBank.exportError') || 'Failed to export problems');
     }
   };
 

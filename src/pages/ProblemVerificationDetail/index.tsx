@@ -5,6 +5,7 @@ import {
   PencilIcon,
 } from '@heroicons/react/24/outline';
 import { useEffect, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -118,7 +119,7 @@ const ProblemVerificationDetail = () => {
 
   const handleSubmitFeedback = async () => {
     if (!selectedStatus) {
-      alert(t('problemVerificationDetail.selectStatusAlert'));
+      toast.error(t('problemVerificationDetail.selectStatusAlert'));
       return;
     }
 
@@ -159,11 +160,11 @@ const ProblemVerificationDetail = () => {
       }
 
       // Show success message and navigate back
-      alert(t('problemVerificationDetail.feedbackSubmitted'));
+      toast.success(t('problemVerificationDetail.feedbackSubmitted'));
       navigate('/problemverification');
     } catch (error) {
       console.error('Error submitting feedback:', error);
-      alert(
+      toast.error(
         error instanceof Error ? error.message : 'Failed to submit feedback',
       );
     }
