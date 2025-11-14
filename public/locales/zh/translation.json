@@ -165,6 +165,9 @@
       "user": "用户",
       "verifier": "验题员",
       "reviewer": "审题员",
+      "setter": "命题员",
+      "tester": "测试员",
+      "contest_manager": "赛务管理员",
       "super_admin": "超级管理员"
     },
     "roles": {
@@ -173,10 +176,14 @@
       "user": "用户",
       "verifier": "验题员",
       "reviewer": "审题员",
+      "setter": "命题员",
+      "tester": "测试员",
+      "contest_manager": "赛务管理员",
       "super_admin": "超级管理员"
     },
     "searchPlaceholder": "搜索用户...",
     "noUsersFound": "未找到用户",
+    "unknownUser": "未知用户",
     "table": {
       "userId": "用户ID",
       "user": "用户",
@@ -186,16 +193,23 @@
       "actions": "操作"
     },
     "loading": "加载中...",
+    "editUser": "编辑用户",
     "editUserModalTitle": "编辑用户",
     "form":{
       "username": "用户名",
       "email": "电子邮件",
       "role": "角色"
     },
+    "roleSelectionHint": "请选择至少一个角色",
+    "noRolesLoaded": "无法加载角色列表，请稍后再试。",
     "saveChanges": "保存更改",
     "confirmDeletion": "确认删除",
-    "deleteConfirmation": "您确定要删除此用户吗？",
-    "deleteUser": "删除用户"
+    "deleteConfirmation": "确定要删除 {{username}} 吗？",
+    "deleteUser": "删除用户",
+    "toast": {
+      "updateSuccess": "用户信息已更新",
+      "deleteSuccess": "用户已删除"
+    }
   },
   "competitions": {
     "managementTitle": "比赛管理",

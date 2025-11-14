@@ -6,19 +6,69 @@ import {
   XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { useEffect, useState } from 'react';
+import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+
+import { API_BASE_URL } from '../../../config';
+
+interface ApiUser {
+  user_id: string;
+  username: string;
+  email: string;
+  roles: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+interface ApiRole {
+  name: string;
+  description?: string;
+  is_super_admin?: boolean;
+}
 
 interface User {
   user_id: string;
   username: string;
   email: string;
-  role: 'user' | 'verifier' | 'admin' | 'super_admin';
+  roles: string[];
   created_at: Date;
+  updated_at: Date;
 }
+
+interface FormState {
+  username: string;
+  email: string;
+  roles: string[];
+}
+
+const transformApiUser = (user: ApiUser): User => ({
+  user_id: user.user_id,
+  username: user.username,
+  email: user.email,
+  roles: Array.isArray(user.roles) ? user.roles : [],
+  created_at: user.created_at ? new Date(user.created_at) : new Date(),
+  updated_at: user.updated_at ? new Date(user.updated_at) : new Date(),
+});
+
+const parseErrorResponse = async (response: Response) => {
+  try {
+    const data = await response.json();
+    if (typeof data === 'string') {
+      return data;
+    }
+    if (data?.message) {
+      return data.message;
+    }
+  } catch {
+    // ignore JSON parse errors
+  }
+  return response.statusText || 'Unknown error';
+};
 
 const PersonnelManagement = () => {
   const { t } = useTranslation();
   const [users, setUsers] = useState<User[]>([]);
+  const [availableRoles, setAvailableRoles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
@@ -26,97 +76,104 @@ const PersonnelManagement = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormState>({
     username: '',
     email: '',
-    role: 'user',
+    roles: [],
   });
 
-  // Load mock data
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      const mockUsers: User[] = [
-        {
-          user_id: '1',
-          username: 'John Smith',
-          email: 'john@example.com',
-          role: 'user',
-          created_at: new Date('2024-12-15'),
-        },
-        {
-          user_id: '2',
-          username: 'Sarah Johnson',
-          email: 'sarah@example.com',
-          role: 'verifier',
-          created_at: new Date('2025-01-20'),
-        },
-      ];
-      setUsers(mockUsers);
-      setLoading(false);
-    }, 800);
+    let cancelled = false;
+
+    const fetchUsers = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch(`${API_BASE_URL}/users`, {
+          method: 'GET',
+          headers: {
+            'ngrok-skip-browser-warning': 'abc',
+          },
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          throw new Error(await parseErrorResponse(response));
+        }
+
+        const data = await response.json();
+
+        if (cancelled) {
+          return;
+        }
+
+        const normalizedUsers = Array.isArray(data?.users)
+          ? (data.users as ApiUser[]).map(transformApiUser)
+          : [];
+        const normalizedRoles = Array.isArray(data?.roles)
+          ? Array.from(
+              new Set(
+                (data.roles as ApiRole[])
+                  .map((role) => role?.name)
+                  .filter((name): name is string => Boolean(name)),
+              ),
+            ).sort()
+          : [];
+
+        setUsers(normalizedUsers);
+        setAvailableRoles(normalizedRoles);
+        setRoleFilter((prev) =>
+          prev !== 'all' && !normalizedRoles.includes(prev) ? 'all' : prev,
+        );
+      } catch (error) {
+        if (!cancelled) {
+          console.error('Error fetching users:', error);
+          toast.error(
+            error instanceof Error ? error.message : 'Failed to load user list',
+          );
+          setUsers([]);
+          setAvailableRoles([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchUsers();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  // Filter users based on search and role
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
       user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
-
+    const matchesRole = roleFilter === 'all' || user.roles.includes(roleFilter);
     return matchesSearch && matchesRole;
   });
 
-  // Handle user edit
+  const availableRoleOptions = availableRoles.length > 0 ? availableRoles : [];
+
   const handleEditUser = (user: User) => {
     setCurrentUser(user);
     setFormData({
       username: user.username,
       email: user.email,
-      role: user.role,
+      roles: [...user.roles],
     });
     setShowUserModal(true);
   };
 
-  // Show delete confirmation modal
   const handleDeleteClick = (userId: string) => {
     setUserToDelete(userId);
     setShowDeleteModal(true);
   };
 
-  // Execute user deletion
-  const confirmDelete = () => {
-    if (userToDelete) {
-      setUsers(users.filter((u) => u.user_id !== userToDelete));
-      // TODO: Add API call to delete user
-    }
-    setShowDeleteModal(false);
-    setUserToDelete(null);
-  };
-
-  // Handle user save (update only)
-  const handleSaveUser = () => {
-    if (currentUser) {
-      // Update existing user
-      setUsers(
-        users.map((user) =>
-          user.user_id === currentUser.user_id
-            ? {
-                ...user,
-                username: formData.username,
-                email: formData.email,
-                role: formData.role as User['role'],
-              }
-            : user,
-        ),
-      );
-    }
-    setShowUserModal(false);
-  };
-
-  // Get badge color based on role
   const getRoleBadgeClass = (role: string) => {
     switch (role) {
       case 'super_admin':
@@ -124,16 +181,134 @@ const PersonnelManagement = () => {
       case 'admin':
         return 'bg-purple-500/20 text-purple-300';
       case 'verifier':
+      case 'reviewer':
         return 'bg-blue-500/20 text-blue-300';
+      case 'setter':
+        return 'bg-emerald-500/20 text-emerald-300';
+      case 'tester':
+        return 'bg-indigo-500/20 text-indigo-300';
+      case 'contest_manager':
+        return 'bg-orange-500/20 text-orange-300';
       default:
         return 'bg-slate-500/20 text-slate-300';
     }
   };
 
-  // Get username by user ID
+  const getRoleLabel = (role: string) =>
+    t(`personnel.roles.${role}`, role.replace(/_/g, ' '));
+
   const getUsernameById = (userId: string) => {
     const user = users.find((u) => u.user_id === userId);
     return user ? user.username : t('personnel.unknownUser');
+  };
+
+  const closeEditModal = () => {
+    setShowUserModal(false);
+    setCurrentUser(null);
+    setFormData({
+      username: '',
+      email: '',
+      roles: [],
+    });
+    setIsSaving(false);
+  };
+
+  const handleRoleToggle = (role: string) => {
+    setFormData((prev) => {
+      const exists = prev.roles.includes(role);
+      return {
+        ...prev,
+        roles: exists
+          ? prev.roles.filter((r) => r !== role)
+          : [...prev.roles, role],
+      };
+    });
+  };
+
+  const handleSaveUser = async () => {
+    if (!currentUser) {
+      return;
+    }
+
+    if (formData.roles.length === 0) {
+      toast.error(t('personnel.roleSelectionHint'));
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/users/${currentUser.user_id}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'abc',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            username: formData.username.trim(),
+            email: formData.email.trim(),
+            roles: formData.roles,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(await parseErrorResponse(response));
+      }
+
+      const data = await response.json();
+      const updatedUser = transformApiUser(data.user);
+
+      setUsers((prev) =>
+        prev.map((user) =>
+          user.user_id === updatedUser.user_id ? updatedUser : user,
+        ),
+      );
+
+      toast.success(t('personnel.toast.updateSuccess'));
+      closeEditModal();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to update user',
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!userToDelete) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/users/${userToDelete}`, {
+        method: 'DELETE',
+        headers: {
+          'ngrok-skip-browser-warning': 'abc',
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error(await parseErrorResponse(response));
+      }
+
+      setUsers((prev) => prev.filter((user) => user.user_id !== userToDelete));
+
+      toast.success(t('personnel.toast.deleteSuccess'));
+      setShowDeleteModal(false);
+      setUserToDelete(null);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to delete user',
+      );
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -144,7 +319,6 @@ const PersonnelManagement = () => {
         </h1>
       </div>
 
-      {/* Filters and Search */}
       <div className="flex flex-wrap gap-4 mb-6">
         <div className="relative flex-grow max-w-md">
           <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -169,17 +343,15 @@ const PersonnelManagement = () => {
             onChange={(e) => setRoleFilter(e.target.value)}
           >
             <option value="all">{t('personnel.filter.all')}</option>
-            <option value="user">{t('personnel.filter.user')}</option>
-            <option value="verifier">{t('personnel.filter.verifier')}</option>
-            <option value="admin">{t('personnel.filter.admin')}</option>
-            <option value="super_admin">
-              {t('personnel.filter.super_admin')}
-            </option>
+            {availableRoleOptions.map((role) => (
+              <option key={role} value={role}>
+                {getRoleLabel(role)}
+              </option>
+            ))}
           </select>
         </div>
       </div>
 
-      {/* Users Table */}
       <div className="bg-slate-800 rounded-lg overflow-hidden">
         {loading ? (
           <div className="p-8 text-center text-slate-400">
@@ -229,11 +401,22 @@ const PersonnelManagement = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getRoleBadgeClass(user.role)}`}
-                    >
-                      {t(`personnel.roles.${user.role}`)}
-                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {user.roles.length === 0 ? (
+                        <span className="text-slate-400 text-sm">
+                          {t('personnel.roles.user')}
+                        </span>
+                      ) : (
+                        user.roles.map((role) => (
+                          <span
+                            key={`${user.user_id}-${role}`}
+                            className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getRoleBadgeClass(role)}`}
+                          >
+                            {getRoleLabel(role)}
+                          </span>
+                        ))
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400">
                     {user.created_at.toLocaleDateString()}
@@ -265,7 +448,6 @@ const PersonnelManagement = () => {
         )}
       </div>
 
-      {/* Edit User Modal */}
       {showUserModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
           <div
@@ -281,7 +463,7 @@ const PersonnelManagement = () => {
                 })}
               </h2>
               <button
-                onClick={() => setShowUserModal(false)}
+                onClick={closeEditModal}
                 className="text-slate-400 hover:text-slate-200"
                 type="button"
               >
@@ -289,62 +471,69 @@ const PersonnelManagement = () => {
               </button>
             </div>
 
-            <div className="p-6">
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
-                    {t('personnel.form.username')}
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full rounded-md border-0 bg-slate-700 py-2 px-3 text-slate-300 focus:ring-1 focus:ring-indigo-500"
-                    value={formData.username}
-                    onChange={(e) =>
-                      setFormData({ ...formData, username: e.target.value })
-                    }
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
-                    {t('personnel.form.email')}
-                  </label>
-                  <input
-                    type="email"
-                    className="w-full rounded-md border-0 bg-slate-700 py-2 px-3 text-slate-300 focus:ring-1 focus:ring-indigo-500"
-                    value={formData.email}
-                    onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
-                    }
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
-                    {t('personnel.form.role')}
-                  </label>
-                  <select
-                    className="w-full rounded-md border-0 bg-slate-700 py-2 px-3 text-slate-300 focus:ring-1 focus:ring-indigo-500"
-                    value={formData.role}
-                    onChange={(e) =>
-                      setFormData({ ...formData, role: e.target.value })
-                    }
-                  >
-                    <option value="user">{t('personnel.filter.user')}</option>
-                    <option value="verifier">
-                      {t('personnel.filter.verifier')}
-                    </option>
-                    <option value="admin">{t('personnel.filter.admin')}</option>
-                    <option value="super_admin">
-                      {t('personnel.filter.super_admin')}
-                    </option>
-                  </select>
-                </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">
+                  {t('personnel.form.username')}
+                </label>
+                <input
+                  type="text"
+                  className="w-full rounded-md border-0 bg-slate-700 py-2 px-3 text-slate-300 focus:ring-1 focus:ring-indigo-500"
+                  value={formData.username}
+                  onChange={(e) =>
+                    setFormData({ ...formData, username: e.target.value })
+                  }
+                />
               </div>
 
-              <div className="flex justify-end gap-3 mt-6">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">
+                  {t('personnel.form.email')}
+                </label>
+                <input
+                  type="email"
+                  className="w-full rounded-md border-0 bg-slate-700 py-2 px-3 text-slate-300 focus:ring-1 focus:ring-indigo-500"
+                  value={formData.email}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  {t('personnel.form.role')}
+                </label>
+                {availableRoleOptions.length === 0 ? (
+                  <p className="text-sm text-slate-400">
+                    {t('personnel.noRolesLoaded')}
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-3">
+                    {availableRoleOptions.map((role) => (
+                      <label
+                        key={role}
+                        className="inline-flex items-center text-slate-300 text-sm"
+                      >
+                        <input
+                          type="checkbox"
+                          className="mr-2 rounded border-slate-600 bg-slate-700 text-indigo-500 focus:ring-indigo-500"
+                          checked={formData.roles.includes(role)}
+                          onChange={() => handleRoleToggle(role)}
+                        />
+                        {getRoleLabel(role)}
+                      </label>
+                    ))}
+                  </div>
+                )}
+                <p className="text-xs text-slate-400 mt-2">
+                  {t('personnel.roleSelectionHint')}
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
                 <button
-                  onClick={() => setShowUserModal(false)}
+                  onClick={closeEditModal}
                   className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg"
                   type="button"
                 >
@@ -352,10 +541,15 @@ const PersonnelManagement = () => {
                 </button>
                 <button
                   onClick={handleSaveUser}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg"
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   type="button"
+                  disabled={
+                    isSaving ||
+                    availableRoleOptions.length === 0 ||
+                    formData.roles.length === 0
+                  }
                 >
-                  {t('personnel.saveChanges')}
+                  {isSaving ? t('common.loading') : t('personnel.saveChanges')}
                 </button>
               </div>
             </div>
@@ -363,7 +557,6 @@ const PersonnelManagement = () => {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
       {showDeleteModal && (
         <div
           className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
@@ -401,10 +594,11 @@ const PersonnelManagement = () => {
                 </button>
                 <button
                   onClick={confirmDelete}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   type="button"
+                  disabled={isDeleting}
                 >
-                  {t('personnel.deleteUser')}
+                  {isDeleting ? t('common.loading') : t('personnel.deleteUser')}
                 </button>
               </div>
             </div>
