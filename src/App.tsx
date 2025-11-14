@@ -146,6 +146,8 @@ function AppContent() {
   const isSuperAdmin = () => userRoles.includes('super_admin');
 
   const isReviewer = () => userRoles.includes('reviewer') || isAdmin();
+  const isContestManager = () =>
+    userRoles.includes('contest_manager') || isSuperAdmin();
 
   return (
     <div className="flex h-screen w-screen">
@@ -249,6 +251,26 @@ function AppContent() {
             )
           }
         />
+        <Route
+          path="/contestmanager"
+          element={
+            isLoggedIn && isContestManager() ? (
+              <CompetitionManagement />
+            ) : (
+              <Navigate to="/" />
+            )
+          }
+        />
+        <Route
+          path="/contestmanager/:id"
+          element={
+            isLoggedIn && isContestManager() ? (
+              <CompetitionDetail />
+            ) : (
+              <Navigate to="/" />
+            )
+          }
+        />
 
         {/* Super Admin Routes */}
         <Route
@@ -269,8 +291,6 @@ function AppContent() {
           />
 
           <Route path="personnel" element={<PersonnelManagement />} />
-          <Route path="competitions" element={<CompetitionManagement />} />
-          <Route path="competitions/:id" element={<CompetitionDetail />} />
 
           <Route
             path="settings"

@@ -374,7 +374,7 @@ const ProblemReadOnlyView = ({
               <div className="space-y-3">
                 {examples.map((example, index) => (
                   <div
-                    key={`${example.input}-${example.output}-${index}`}
+                    key={`example-${example.input?.substring(0, 20)}-${example.output?.substring(0, 20)}-${index}`}
                     className="border border-slate-700 rounded-lg overflow-hidden bg-slate-800/30"
                   >
                     <div className="bg-slate-800/50 px-4 py-2 border-b border-slate-700">

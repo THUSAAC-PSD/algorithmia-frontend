@@ -106,7 +106,7 @@ const CompetitionManagement = () => {
 
   // Navigate to competition detail page
   const handleViewCompetition = (contestId: string) => {
-    navigate(`/superadmin/competitions/${contestId}`);
+    navigate(`/contestmanager/${contestId}`);
   };
 
   // Show delete confirmation modal
@@ -238,114 +238,169 @@ const CompetitionManagement = () => {
     });
   };
 
+  // Helper to check if competition is expired
+  const isExpired = (deadlineStr: string) => {
+    return new Date(deadlineStr) < new Date();
+  };
+
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-white">
-          {t('competitions.managementTitle')}
-        </h1>
+    <div className="flex flex-col h-full bg-slate-900 w-full">
+      <div className="p-6 space-y-6 flex-1 overflow-y-auto">
+        {/* Header Section */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-white">
+              {t('competitions.managementTitle')}
+            </h1>
+            <p className="mt-1 text-sm text-slate-400">
+              Manage all competition settings and deadlines
+            </p>
+          </div>
 
-        <button
-          onClick={() => {
-            setCurrentCompetition(null);
-            setFormData({
-              title: '',
-              description: '',
-              min_problem_count: 1,
-              max_problem_count: 10,
-              deadline_datetime: new Date().toISOString().split('T')[0],
-            });
-            setShowCompetitionModal(true);
-          }}
-          className="flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg"
-          type="button"
-        >
-          <PlusIcon className="w-5 h-5 mr-2" />
-          {t('competitions.newCompetition')}
-        </button>
-      </div>
+          <button
+            onClick={() => {
+              setCurrentCompetition(null);
+              setFormData({
+                title: '',
+                description: '',
+                min_problem_count: 1,
+                max_problem_count: 10,
+                deadline_datetime: new Date().toISOString().split('T')[0],
+              });
+              setShowCompetitionModal(true);
+            }}
+            className="flex items-center justify-center px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-indigo-500/50 hover:scale-105"
+            type="button"
+          >
+            <PlusIcon className="w-5 h-5 mr-2" />
+            {t('competitions.newCompetition')}
+          </button>
+        </div>
 
-      <div className="flex flex-wrap gap-4 mb-6">
-        <div className="relative flex-grow max-w-md">
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+        {/* Search Bar */}
+        <div className="relative max-w-md">
+          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
             <MagnifyingGlassIcon
-              className="h-5 w-5 text-slate-500"
+              className="h-5 w-5 text-slate-400"
               aria-hidden="true"
             />
           </div>
           <input
             type="text"
-            className="block w-full rounded-md border-0 bg-slate-800 py-2.5 pl-10 pr-3 text-slate-300 placeholder:text-slate-500 focus:ring-1 focus:ring-indigo-500"
+            className="block w-full rounded-lg border-0 bg-slate-800/50 py-3 pl-11 pr-4 text-slate-300 placeholder:text-slate-500 focus:ring-2 focus:ring-indigo-500 focus:bg-slate-800 transition-all"
             placeholder={t('competitions.searchPlaceholder')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-      </div>
 
-      <div className="bg-slate-800 rounded-lg overflow-hidden">
-        {loading ? (
-          <div className="p-8 text-center text-slate-400">
-            <div className="animate-pulse">{t('competitions.loading')}</div>
-          </div>
-        ) : filteredCompetitions.length === 0 ? (
-          <div className="p-8 text-center text-slate-400">
-            {t('competitions.noCompetitionsFound')}
-          </div>
-        ) : (
-          <table className="min-w-full divide-y divide-slate-700">
-            <thead className="bg-slate-700/30">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                  {t('competitions.table.details')}
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                  {t('competitions.table.problemCount')}
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                  {t('competitions.table.deadline')}
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                  {t('competitions.table.createdAt')}
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-slate-400 uppercase tracking-wider">
-                  {t('competitions.table.actions')}
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-700">
-              {filteredCompetitions.map((competition) => (
-                <tr
+        {/* Competitions Grid */}
+        <div className="grid gap-4">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-16 space-y-4">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
+              <p className="text-slate-400">{t('competitions.loading')}</p>
+            </div>
+          ) : filteredCompetitions.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-24 space-y-6 animate-fadeIn">
+              <div className="relative">
+                <div className="absolute inset-0 bg-indigo-500/20 blur-3xl rounded-full"></div>
+                <div className="relative bg-gradient-to-br from-slate-800 to-slate-900 p-8 rounded-2xl border border-slate-700/50 shadow-2xl">
+                  <DocumentTextIcon className="w-20 h-20 text-indigo-400/80" />
+                </div>
+              </div>
+              <div className="text-center space-y-3 max-w-md">
+                <h3 className="text-xl font-semibold text-white">
+                  {searchTerm
+                    ? t('competitions.noMatchingCompetitions')
+                    : t('competitions.noCompetitionsYet')}
+                </h3>
+                <p className="text-slate-400 text-sm leading-relaxed">
+                  {searchTerm
+                    ? t('competitions.tryDifferentSearch')
+                    : t('competitions.createFirstCompetition')}
+                </p>
+              </div>
+              {!searchTerm && (
+                <button
+                  onClick={() => {
+                    setCurrentCompetition(null);
+                    setFormData({
+                      title: '',
+                      description: '',
+                      min_problem_count: 1,
+                      max_problem_count: 10,
+                      deadline_datetime: new Date().toISOString().split('T')[0],
+                    });
+                    setShowCompetitionModal(true);
+                  }}
+                  className="flex items-center justify-center px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-all duration-200 shadow-lg hover:shadow-indigo-500/50 hover:scale-105 mt-4"
+                  type="button"
+                >
+                  <PlusIcon className="w-5 h-5 mr-2" />
+                  {t('competitions.createCompetition')}
+                </button>
+              )}
+            </div>
+          ) : (
+            filteredCompetitions.map((competition) => {
+              const expired = isExpired(competition.deadline_datetime);
+              return (
+                <div
                   key={competition.contest_id}
-                  className="hover:bg-slate-700/30 cursor-pointer"
+                  className="group bg-slate-800/50 hover:bg-slate-800 rounded-xl p-6 cursor-pointer transition-all duration-200 border border-slate-700/50 hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/10"
                   onClick={() => handleViewCompetition(competition.contest_id)}
                 >
-                  <td className="px-6 py-4 whitespace-normal max-w-xs">
-                    <div className="flex flex-col">
-                      <div className="text-sm font-medium text-white truncate">
-                        {competition.title}
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      {/* Title and Status */}
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-lg font-semibold text-white truncate">
+                          {competition.title}
+                        </h3>
+                        {expired ? (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">
+                            <ClockIcon className="w-3.5 h-3.5 mr-1" />
+                            Expired
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20">
+                            <CheckCircleIcon className="w-3.5 h-3.5 mr-1" />
+                            Active
+                          </span>
+                        )}
                       </div>
-                      <div className="text-sm text-slate-400 line-clamp-2">
+
+                      {/* Description */}
+                      <p className="text-sm text-slate-400 line-clamp-2 mb-4">
                         {competition.description}
+                      </p>
+
+                      {/* Metadata Grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                        <div className="flex items-center text-slate-400">
+                          <DocumentTextIcon className="w-4 h-4 mr-2 text-slate-500" />
+                          <span>
+                            {competition.min_problem_count} -{' '}
+                            {competition.max_problem_count} problems
+                          </span>
+                        </div>
+                        <div className="flex items-center text-slate-400">
+                          <ClockIcon className="w-4 h-4 mr-2 text-slate-500" />
+                          <span>
+                            Due {formatDate(competition.deadline_datetime)}
+                          </span>
+                        </div>
+                        <div className="flex items-center text-slate-400">
+                          <span className="text-slate-500 mr-2">Created</span>
+                          {formatDate(competition.created_at)}
+                        </div>
                       </div>
                     </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
-                    {competition.min_problem_count} -{' '}
-                    {competition.max_problem_count}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-slate-300 flex items-center">
-                      <ClockIcon className="h-4 w-4 mr-1" />
-                      {formatDate(competition.deadline_datetime)}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
-                    {formatDate(competition.created_at)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+
+                    {/* Actions */}
                     <div
-                      className="flex justify-end space-x-2"
+                      className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <button
@@ -353,7 +408,7 @@ const CompetitionManagement = () => {
                           e.stopPropagation();
                           handleViewCompetition(competition.contest_id);
                         }}
-                        className="p-1 rounded-full hover:bg-slate-600 text-slate-300"
+                        className="p-2 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
                         title={t('competitions.viewCompetition')}
                         type="button"
                       >
@@ -364,7 +419,7 @@ const CompetitionManagement = () => {
                           e.stopPropagation();
                           handleEditCompetition(competition);
                         }}
-                        className="p-1 rounded-full hover:bg-slate-600 text-slate-300"
+                        className="p-2 rounded-lg hover:bg-slate-700 text-slate-400 hover:text-indigo-400 transition-colors"
                         title={t('competitions.editCompetition')}
                         type="button"
                       >
@@ -374,212 +429,224 @@ const CompetitionManagement = () => {
                         onClick={(e) =>
                           handleDeleteClick(competition.contest_id, e)
                         }
-                        className="p-1 rounded-full hover:bg-slate-600 text-slate-300"
+                        className="p-2 rounded-lg hover:bg-red-500/10 text-slate-400 hover:text-red-400 transition-colors"
                         title={t('competitions.deleteCompetition')}
                         type="button"
                       >
                         <TrashIcon className="h-5 w-5" />
                       </button>
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {/* Competition Modal */}
-      {showCompetitionModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div
-            className="bg-slate-800 rounded-lg max-w-2xl w-full overflow-hidden shadow-xl"
-            style={{
-              animation: 'scaleIn 0.2s ease-out forwards',
-            }}
-          >
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
-              <h2 className="text-lg font-medium text-white">
-                {currentCompetition
-                  ? t('competitions.editCompetitionModalTitle', {
-                      title: currentCompetition.title,
-                    })
-                  : t('competitions.createCompetitionModalTitle')}
-              </h2>
-              <button
-                onClick={() => setShowCompetitionModal(false)}
-                className="text-slate-400 hover:text-slate-200"
-                type="button"
-              >
-                <XMarkIcon className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="p-6">
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
-                    {t('competitions.form.title')}
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full rounded-md border-0 bg-slate-700 py-2 px-3 text-slate-300 focus:ring-1 focus:ring-indigo-500"
-                    value={formData.title}
-                    onChange={(e) =>
-                      setFormData({ ...formData, title: e.target.value })
-                    }
-                    placeholder={t('competitions.form.titlePlaceholder')}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
-                    {t('competitions.form.description')}
-                  </label>
-                  <textarea
-                    rows={3}
-                    className="w-full rounded-md border-0 bg-slate-700 py-2 px-3 text-slate-300 focus:ring-1 focus:ring-indigo-500"
-                    value={formData.description}
-                    onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
-                    }
-                    placeholder={t('competitions.form.descriptionPlaceholder')}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">
-                      {t('competitions.form.minProblemCount')}
-                    </label>
-                    <input
-                      type="number"
-                      className="w-full rounded-md border-0 bg-slate-700 py-2 px-3 text-slate-300 focus:ring-1 focus:ring-indigo-500"
-                      value={formData.min_problem_count}
-                      min={1}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          min_problem_count: parseInt(e.target.value) || 1,
-                        })
-                      }
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">
-                      {t('competitions.form.maxProblemCount')}
-                    </label>
-                    <input
-                      type="number"
-                      className="w-full rounded-md border-0 bg-slate-700 py-2 px-3 text-slate-300 focus:ring-1 focus:ring-indigo-500"
-                      value={formData.max_problem_count}
-                      min={formData.min_problem_count}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          max_problem_count:
-                            parseInt(e.target.value) ||
-                            formData.min_problem_count,
-                        })
-                      }
-                    />
                   </div>
                 </div>
+              );
+            })
+          )}
+        </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-1">
-                    {t('competitions.form.deadline')}
-                  </label>
-                  <input
-                    type="date"
-                    className="w-full rounded-md border-0 bg-slate-700 py-2 px-3 text-slate-300 focus:ring-1 focus:ring-indigo-500"
-                    value={formData.deadline_datetime}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        deadline_datetime: e.target.value,
-                      })
-                    }
-                  />
-                  <p className="mt-1 text-xs text-slate-400">
-                    {t('competitions.form.deadlineHelp')}
-                  </p>
+        {/* Competition Modal */}
+        {showCompetitionModal && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
+            <div className="bg-slate-800 rounded-xl max-w-2xl w-full overflow-hidden shadow-2xl border border-slate-700 animate-slideUp">
+              <div className="flex items-center justify-between px-6 py-5 border-b border-slate-700 bg-gradient-to-r from-indigo-600/10 to-purple-600/10">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-indigo-500/10 rounded-lg">
+                    <DocumentTextIcon className="w-6 h-6 text-indigo-400" />
+                  </div>
+                  <h2 className="text-xl font-semibold text-white">
+                    {currentCompetition
+                      ? t('competitions.editCompetitionModalTitle', {
+                          title: currentCompetition.title,
+                        })
+                      : t('competitions.createCompetitionModalTitle')}
+                  </h2>
                 </div>
-              </div>
-
-              <div className="flex justify-end gap-3 mt-6">
                 <button
                   onClick={() => setShowCompetitionModal(false)}
-                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg"
+                  className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
                   type="button"
                 >
-                  {t('common.cancel')}
+                  <XMarkIcon className="h-5 w-5" />
                 </button>
-                <button
-                  onClick={handleSaveCompetition}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex items-center"
-                  type="button"
-                >
-                  <CheckCircleIcon className="w-5 h-5 mr-1" />
-                  {currentCompetition
-                    ? t('competitions.saveChanges')
-                    : t('competitions.createCompetition')}
-                </button>
+              </div>
+
+              <div className="p-6 max-h-[70vh] overflow-y-auto">
+                <div className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                      {t('competitions.form.title')}{' '}
+                      <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full rounded-lg border-0 bg-slate-700/50 py-2.5 px-4 text-slate-100 placeholder:text-slate-500 focus:ring-2 focus:ring-indigo-500 focus:bg-slate-700 transition-all"
+                      value={formData.title}
+                      onChange={(e) =>
+                        setFormData({ ...formData, title: e.target.value })
+                      }
+                      placeholder={t('competitions.form.titlePlaceholder')}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                      {t('competitions.form.description')}{' '}
+                      <span className="text-red-400">*</span>
+                    </label>
+                    <textarea
+                      rows={4}
+                      className="w-full rounded-lg border-0 bg-slate-700/50 py-2.5 px-4 text-slate-100 placeholder:text-slate-500 focus:ring-2 focus:ring-indigo-500 focus:bg-slate-700 transition-all resize-none"
+                      value={formData.description}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          description: e.target.value,
+                        })
+                      }
+                      placeholder={t(
+                        'competitions.form.descriptionPlaceholder',
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-2">
+                        {t('competitions.form.minProblemCount')}
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          className="w-full rounded-lg border-0 bg-slate-700/50 py-2.5 px-4 text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:bg-slate-700 transition-all"
+                          value={formData.min_problem_count}
+                          min={1}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              min_problem_count: parseInt(e.target.value) || 1,
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-2">
+                        {t('competitions.form.maxProblemCount')}
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          className="w-full rounded-lg border-0 bg-slate-700/50 py-2.5 px-4 text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:bg-slate-700 transition-all"
+                          value={formData.max_problem_count}
+                          min={formData.min_problem_count}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              max_problem_count:
+                                parseInt(e.target.value) ||
+                                formData.min_problem_count,
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-2">
+                      {t('competitions.form.deadline')}{' '}
+                      <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      className="w-full rounded-lg border-0 bg-slate-700/50 py-2.5 px-4 text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:bg-slate-700 transition-all"
+                      value={formData.deadline_datetime}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          deadline_datetime: e.target.value,
+                        })
+                      }
+                    />
+                    <p className="mt-2 text-xs text-slate-500 flex items-center">
+                      <ClockIcon className="w-3.5 h-3.5 mr-1" />
+                      {t('competitions.form.deadlineHelp')}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-slate-700">
+                  <button
+                    onClick={() => setShowCompetitionModal(false)}
+                    className="px-5 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition-colors"
+                    type="button"
+                  >
+                    {t('common.cancel')}
+                  </button>
+                  <button
+                    onClick={handleSaveCompetition}
+                    className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium flex items-center transition-all shadow-lg hover:shadow-indigo-500/50"
+                    type="button"
+                  >
+                    <CheckCircleIcon className="w-5 h-5 mr-2" />
+                    {currentCompetition
+                      ? t('competitions.saveChanges')
+                      : t('competitions.createCompetition')}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <div
-          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
-          style={{
-            animation: 'fadeIn 0.2s ease-out forwards',
-          }}
-        >
-          <div
-            className="bg-slate-800 rounded-lg max-w-md w-full overflow-hidden shadow-xl"
-            style={{
-              animation: 'slideIn 0.3s ease-out forwards',
-            }}
-          >
-            <div className="bg-red-500/10 px-6 py-4 flex items-center border-b border-slate-700">
-              <ExclamationTriangleIcon className="h-6 w-6 text-red-400 mr-3" />
-              <h2 className="text-lg font-medium text-white">
-                {t('competitions.confirmDeletion')}
-              </h2>
-            </div>
+        {/* Delete Confirmation Modal */}
+        {showDeleteModal && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
+            <div className="bg-slate-800 rounded-xl max-w-md w-full overflow-hidden shadow-2xl border border-red-500/20 animate-slideUp">
+              <div className="px-6 py-5 flex items-center border-b border-slate-700 bg-gradient-to-r from-red-600/10 to-orange-600/10">
+                <div className="p-2 bg-red-500/10 rounded-lg mr-3">
+                  <ExclamationTriangleIcon className="h-6 w-6 text-red-400" />
+                </div>
+                <h2 className="text-xl font-semibold text-white">
+                  {t('competitions.confirmDeletion')}
+                </h2>
+              </div>
 
-            <div className="p-6">
-              <p className="text-slate-300">
-                {t('competitions.deleteConfirmation', {
-                  title: getTitleById(competitionToDelete || ''),
-                })}
-              </p>
+              <div className="p-6">
+                <p className="text-slate-300 leading-relaxed">
+                  {t('competitions.deleteConfirmation', {
+                    title: getTitleById(competitionToDelete || ''),
+                  })}
+                </p>
+                <div className="mt-4 p-4 bg-red-500/5 border border-red-500/20 rounded-lg">
+                  <p className="text-sm text-red-400 flex items-start">
+                    <ExclamationTriangleIcon className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" />
+                    This action cannot be undone.
+                  </p>
+                </div>
 
-              <div className="flex justify-end gap-3 mt-6">
-                <button
-                  onClick={() => setShowDeleteModal(false)}
-                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
-                  type="button"
-                >
-                  {t('common.cancel')}
-                </button>
-                <button
-                  onClick={confirmDelete}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-                  type="button"
-                >
-                  {t('competitions.deleteCompetition')}
-                </button>
+                <div className="flex justify-end gap-3 mt-6">
+                  <button
+                    onClick={() => setShowDeleteModal(false)}
+                    className="px-5 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition-colors"
+                    type="button"
+                  >
+                    {t('common.cancel')}
+                  </button>
+                  <button
+                    onClick={confirmDelete}
+                    className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-all shadow-lg hover:shadow-red-500/50 flex items-center"
+                    type="button"
+                  >
+                    <TrashIcon className="w-4 h-4 mr-2" />
+                    {t('competitions.deleteCompetition')}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

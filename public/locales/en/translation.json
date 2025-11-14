@@ -39,8 +39,9 @@
     "problemSetting": "Problem Setting",
     "chat": "Chat",
     "problemVerification": "Problem Verification",
-    "problemBank": "Problem Bank",
     "problemReview": "Problem Review",
+    "problemBank": "Problem Bank",
+    "contestManager": "Contest Management",
     "superAdmin": "Super Admin"
   },
   "problemList": {
@@ -215,6 +216,10 @@
     "managementTitle": "Competition Management",
     "searchPlaceholder": "Search competitions...",
     "noCompetitionsFound": "No competitions found",
+    "noMatchingCompetitions": "No matching competitions",
+    "noCompetitionsYet": "No competitions yet",
+    "tryDifferentSearch": "Try adjusting your search terms",
+    "createFirstCompetition": "Get started by creating your first competition to organize problems and set deadlines.",
     "table": {
       "contestId": "Competition ID",
       "details": "Details",
@@ -248,9 +253,8 @@
     "description": "Description",
     "contestId": "Contest ID",
     "deadline": "Deadline",
-    "problemRequirement": "Problem Requirement",
+    "problemRequirement": "{{min}}-{{max}} problems (currently {{count}})",
     "problems": "problems",
-    "currentProblemCount": "Current Problem Count",
     "assignedProblems": "Assigned Problems",
     "addProblem": "Add Problem",
     "addProblems": "Add Problems",
@@ -260,10 +264,40 @@
     "noMatchingProblems": "No matching problems found",
     "allProblemsAssigned": "All available problems are assigned",
     "add": "Add",
-    "needMoreProblems": "Need {{need_more_problems}} more problems (current: {{current}}, minimum: {{min}})",
-    "tooManyProblems": "Too many problems (current: {{current}}, maximum: {{max}})",
-    "problemCountOk": "Problem count is good ({{current}}/{{min}}-{{max}})",
     "export": "Export Competition"
+  },
+  "contestManager": {
+    "title": "Contest Management",
+    "description": "Create contests, import problems, and export contest data.",
+    "contestList": "Contests",
+    "createContest": "Create Contest",
+    "refresh": "Refresh",
+    "noContests": "No contests available yet.",
+    "selectContest": "Select a contest to manage problems.",
+    "details": "Contest Details",
+    "assignedProblems": "Assigned Problems",
+    "availableProblems": "Available Problems",
+    "searchAvailable": "Search by title or difficulty...",
+    "noAssigned": "No problems assigned to this contest.",
+    "noAvailable": "No available problems match your search.",
+    "importProblem": "Import",
+    "removeProblem": "Remove",
+    "exportJson": "Export JSON",
+    "problemRequirement": "{{min}}-{{max}} problems (currently {{count}})",
+    "modal": {
+      "title": "New Contest",
+      "name": "Name",
+      "description": "Description",
+      "min": "Minimum Problems",
+      "max": "Maximum Problems",
+      "deadline": "Deadline",
+      "submit": "Save Contest"
+    },
+    "toast": {
+      "createSuccess": "Contest saved successfully",
+      "importSuccess": "Problem imported to contest",
+      "removeSuccess": "Problem removed from contest"
+    }
   },
   "common": {
     "cancel": "Cancel",

@@ -8,6 +8,7 @@ import {
   DocumentTextIcon,
   ServerStackIcon,
   ShieldCheckIcon,
+  TrophyIcon,
 } from '@heroicons/react/24/outline';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -52,6 +53,12 @@ const Sidebar = ({ userRoles, userName }: SidebarProps) => {
       label: t('sidebar.problemBank'),
       icon: <ServerStackIcon className="w-5 h-5" />,
       show: isAdmin(),
+    },
+    {
+      id: 'contest-manager',
+      label: t('sidebar.contestManager'),
+      icon: <TrophyIcon className="w-5 h-5" />,
+      show: hasRole('contest_manager') || hasRole('super_admin'),
     },
     {
       id: 'super-admin',

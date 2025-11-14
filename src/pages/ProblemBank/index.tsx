@@ -292,7 +292,7 @@ const ProblemBank = () => {
       selectedProblemIds.has(p.id),
     );
     if (selectedProblems.length === 0) {
-      toast.warning(t('problemBank.alertSelectAtLeastOne'));
+      // toast.warning(t('problemBank.alertSelectAtLeastOne'));
       return;
     }
 
