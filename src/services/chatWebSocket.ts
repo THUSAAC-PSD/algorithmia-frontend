@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 
-import { API_BASE_URL } from '../config';
+import { WS_URL } from '../config';
 
 // Types for WebSocket messages
 export interface WebSocketRequest {
@@ -86,9 +86,8 @@ class ChatWebSocketClient {
 
     return new Promise((resolve, reject) => {
       try {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const normalizedBase = API_BASE_URL.replace(/\/$/, '');
-        const wsUrl = `${protocol}//${window.location.host}${normalizedBase}/ws/chat`;
+        // Use the configured WebSocket URL and append the chat path
+        const wsUrl = `${WS_URL}/ws/chat`;
         console.log('[ChatWebSocket] connecting to', wsUrl);
         this.socket = new WebSocket(wsUrl);
 
