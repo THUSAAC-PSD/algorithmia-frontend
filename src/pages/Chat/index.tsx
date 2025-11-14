@@ -93,8 +93,15 @@ interface TestedMessage extends BaseMessage {
 }
 
 // Generic system message for other message types
+interface FieldDiff {
+  before: string;
+  after: string;
+}
+
 interface SystemMessagePayload {
   message: string;
+  changed_fields?: string[];
+  diffs?: Record<string, FieldDiff>;
 }
 
 interface SystemMessage extends BaseMessage {
@@ -364,6 +371,10 @@ const Chat = () => {
               typedData.type === 'submitted'
                 ? `${actorName} submitted the problem`
                 : `${actorName} updated the problem`,
+            changed_fields: (typedData.payload as { changed_fields?: string[] })
+              .changed_fields,
+            diffs: (typedData.payload as { diffs?: Record<string, FieldDiff> })
+              .diffs,
           },
           timestamp: typedData.payload.timestamp,
         };
@@ -933,16 +944,98 @@ const Chat = () => {
                 } else {
                   // Handle any other message types as generic system messages
                   const systemMsg = msg as SystemMessage;
+                  const isEditedMessage = systemMsg.message_type === 'edited';
+
                   return (
                     <div
                       key={`system-${String(index)}-${Math.random().toString(36).substring(2, 9)}`}
                       className="flex justify-center"
                     >
-                      <div className="bg-slate-800 text-slate-300 px-4 py-2 rounded-md text-xs max-w-[80%] text-center">
-                        {systemMsg.payload.message ||
-                          `System: ${systemMsg.message_type}`}
-                        <div className="text-slate-400 mt-1">
-                          {formattedDate} at {formattedTime}
+                      <div className="bg-slate-800/60 text-slate-400 px-3 py-1.5 rounded-md text-xs max-w-[60%]">
+                        <div className="flex items-center gap-2 justify-center">
+                          <span className="text-slate-300">
+                            {systemMsg.payload.message ||
+                              `System: ${systemMsg.message_type}`}
+                          </span>
+
+                          {/* Show changed fields inline */}
+                          {isEditedMessage &&
+                            systemMsg.payload.changed_fields &&
+                            systemMsg.payload.changed_fields.length > 0 && (
+                              <span className="text-indigo-400">
+                                (
+                                {systemMsg.payload.changed_fields
+                                  .map((f) => f.replace(/_/g, ' '))
+                                  .join(', ')}
+                                )
+                              </span>
+                            )}
+
+                          {/* Show diffs as a small expandable button */}
+                          {isEditedMessage &&
+                            systemMsg.payload.diffs &&
+                            Object.keys(systemMsg.payload.diffs).length > 0 && (
+                              <details className="inline-block group">
+                                <summary className="cursor-pointer text-indigo-400 hover:text-indigo-300 inline-flex items-center gap-0.5 list-none">
+                                  <svg
+                                    className="w-3 h-3"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                    />
+                                  </svg>
+                                </summary>
+                                <div className="absolute z-10 mt-2 bg-slate-800 border border-slate-700 rounded-lg shadow-xl p-3 w-96 max-h-96 overflow-auto">
+                                  <div className="space-y-2">
+                                    {Object.entries(
+                                      systemMsg.payload.diffs,
+                                    ).map(([field, diff]) => (
+                                      <div key={field} className="text-xs">
+                                        <div className="font-medium text-indigo-300 mb-1 capitalize">
+                                          {field.replace(/_/g, ' ')}
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2 text-[11px]">
+                                          <div className="bg-red-950/30 border border-red-900/40 rounded p-1.5 max-h-24 overflow-auto">
+                                            <div className="text-red-400 font-medium mb-0.5">
+                                              − Before
+                                            </div>
+                                            <div className="text-red-200/70 whitespace-pre-wrap break-words">
+                                              {diff.before || (
+                                                <span className="italic text-slate-500">
+                                                  empty
+                                                </span>
+                                              )}
+                                            </div>
+                                          </div>
+                                          <div className="bg-green-950/30 border border-green-900/40 rounded p-1.5 max-h-24 overflow-auto">
+                                            <div className="text-green-400 font-medium mb-0.5">
+                                              + After
+                                            </div>
+                                            <div className="text-green-200/70 whitespace-pre-wrap break-words">
+                                              {diff.after || (
+                                                <span className="italic text-slate-500">
+                                                  empty
+                                                </span>
+                                              )}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </details>
+                            )}
+
+                          <span className="text-slate-500">
+                            {formattedTime}
+                          </span>
                         </div>
                       </div>
                     </div>
