@@ -16,6 +16,7 @@ import {
 } from '../../types/problem-status';
 import ProblemDetail from './ProblemDetail';
 import ProblemList from './ProblemList';
+import ProblemReadOnlyView from './ProblemReadOnlyView';
 import {
   CombinedProblemListItem,
   Problem,
@@ -26,12 +27,66 @@ import {
   ViewType,
 } from './types';
 
+interface DraftApiProblem {
+  problem_draft_id: string;
+  submitted_problem_id?: string;
+  details: Array<Problem['details']>;
+  examples: ProblemExample[];
+  problem_difficulty: {
+    problem_difficulty_id: string;
+  } | null;
+  target_contest_id?: string;
+  created_at: string;
+  updated_at: string;
+  status?: string;
+}
+
+const pickPrimaryDetail = (
+  details: Array<Problem['details']> | undefined,
+): Problem['details'] => {
+  if (Array.isArray(details) && details.length > 0) {
+    return details.find((detail) => detail.language === 'en-US') || details[0];
+  }
+
+  return {
+    language: 'en-US',
+    title: '',
+    background: '',
+    statement: '',
+    input_format: '',
+    output_format: '',
+    note: '',
+  };
+};
+
+const mapDraftToProblem = (draft: DraftApiProblem): Problem => {
+  return {
+    problem_draft_id: draft.problem_draft_id,
+    submitted_problem_id: draft.submitted_problem_id,
+    details: pickPrimaryDetail(draft.details),
+    examples: Array.isArray(draft.examples) ? draft.examples : [],
+    problem_difficulty_id:
+      draft.problem_difficulty?.problem_difficulty_id || '',
+    is_submitted: Boolean(draft.submitted_problem_id),
+    target_contest_id: draft.target_contest_id || '',
+    comments: [],
+    created_at: draft.created_at,
+    updated_at: draft.updated_at,
+    status: normalizeProblemStatus(draft.status),
+  };
+};
+
 const ProblemSetting = () => {
   const { t } = useTranslation();
   const [currentView, setCurrentView] = useState<ViewType>('list');
   const [currentProblem, setCurrentProblem] = useState<Problem | null>(null);
   const [currentProblemType, setCurrentProblemType] =
     useState<ProblemType>('draft');
+  const [detailMode, setDetailMode] = useState<'view' | 'edit'>('edit');
+  const [editingProblemId, setEditingProblemId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'all' | 'drafts' | 'submissions'>(
+    'all',
+  );
   const [searchTerm, setSearchTerm] = useState('');
   const [sortColumn, setSortColumn] = useState<
     keyof CombinedProblemListItem | null
@@ -97,6 +152,7 @@ const ProblemSetting = () => {
 
         return {
           id: draft.problem_draft_id,
+          draft_id: draft.problem_draft_id,
           type: 'draft' as ProblemType,
           title: draft.details?.title || '',
           status: derivedStatus,
@@ -122,6 +178,8 @@ const ProblemSetting = () => {
 
         return {
           id: pub.problem_id,
+          draft_id:
+            (pub as PublishedProblem).problem_draft_id ?? pub.problem_id,
           type: 'published' as ProblemType,
           title: titleFromDetails,
           status: normalizeProblemStatus(pub.status),
@@ -164,7 +222,7 @@ const ProblemSetting = () => {
 
       const promoteStatuses = new Set<ProblemStatus>([
         'draft',
-        'review_changes_requested',
+        'needs_revision',
         'testing_changes_requested',
       ]);
       const currentStatus = current.status;
@@ -212,6 +270,126 @@ const ProblemSetting = () => {
 
     return Array.from(deduped.values());
   }, [problemDrafts, publishedProblems]);
+
+  interface ApiVersion {
+    version_id?: string;
+    details?: Array<Problem['details']>;
+    examples?: ProblemExample[];
+    problem_difficulty?: { problem_difficulty_id: string };
+    review?: {
+      reviewer_id: string;
+      comment: string;
+      decision: string;
+      created_at: string;
+    };
+    test_results?: Array<{
+      tester_id: string;
+      status: string;
+      comment: string;
+      created_at: string;
+    }>;
+    created_at?: string;
+  }
+
+  interface ProblemDetailApiPayload {
+    problem_draft_id?: string;
+    problem_id?: string;
+    versions?: ApiVersion[] | unknown;
+    target_contest?: { contest_id?: string } | null;
+    comments?: string[] | unknown;
+    created_at?: string;
+    updated_at?: string;
+    status?: string;
+  }
+
+  const transformProblemDetailResponse = (
+    problemPayload: ProblemDetailApiPayload,
+  ): Problem => {
+    const versions: ApiVersion[] = Array.isArray(problemPayload.versions)
+      ? (problemPayload.versions as ApiVersion[])
+      : [];
+    const latestVersion = versions[0];
+
+    const detailsObj = pickPrimaryDetail(
+      (latestVersion?.details as Array<Problem['details']>) || undefined,
+    );
+
+    return {
+      problem_draft_id:
+        problemPayload.problem_draft_id || problemPayload.problem_id || '',
+      submitted_problem_id: problemPayload.problem_id,
+      details: detailsObj,
+      examples: Array.isArray(latestVersion?.examples)
+        ? latestVersion.examples
+        : [],
+      problem_difficulty_id:
+        latestVersion?.problem_difficulty?.problem_difficulty_id || '',
+      is_submitted: true,
+      target_contest_id:
+        (problemPayload.target_contest &&
+          (problemPayload.target_contest as { contest_id?: string })
+            .contest_id) ||
+        '',
+      comments: Array.isArray(problemPayload.comments)
+        ? problemPayload.comments
+        : [],
+      created_at: problemPayload.created_at || '',
+      updated_at: problemPayload.updated_at || '',
+      status: normalizeProblemStatus(problemPayload.status),
+      versions: versions.map((version: ApiVersion) => ({
+        version_id: version.version_id,
+        details: Array.isArray(version.details) ? version.details : [],
+        examples: Array.isArray(version.examples) ? version.examples : [],
+        problem_difficulty: version.problem_difficulty,
+        review: version.review,
+        test_results: version.test_results,
+        created_at: version.created_at,
+      })),
+    };
+  };
+
+  const loadPublishedProblem = async (
+    problemId: string,
+    options: { showToast?: boolean } = {},
+  ) => {
+    const { showToast = true } = options;
+    const loadingToast = showToast
+      ? toast.loading('Loading problem details...')
+      : null;
+    try {
+      const response = await fetch(`${API_BASE_URL}/problems/${problemId}`, {
+        method: 'GET',
+        mode: 'cors',
+        headers: {
+          'ngrok-skip-browser-warning': 'abc',
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to load problem details');
+      }
+
+      const data = await response.json();
+      const convertedProblem = transformProblemDetailResponse(data.problem);
+      setCurrentProblem(convertedProblem);
+      setCurrentProblemType('published');
+      setDetailMode('view');
+      setEditingProblemId(problemId);
+      setCurrentView('detail');
+    } catch (error) {
+      console.error('Error fetching problem details:', error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Failed to load problem details',
+      );
+    } finally {
+      if (loadingToast) {
+        toast.dismiss(loadingToast);
+      }
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -261,43 +439,8 @@ const ProblemSetting = () => {
           const transformedDraftProblems = Array.isArray(
             draftData?.problem_drafts,
           )
-            ? draftData.problem_drafts.map(
-                (problem: {
-                  problem_draft_id: string;
-                  details: Array<{
-                    language: string;
-                    title: string;
-                    background: string;
-                    statement: string;
-                    input_format: string;
-                    output_format: string;
-                    note: string;
-                  }>;
-                  examples: ProblemExample[];
-                  problem_difficulty_id: string;
-                  is_submitted: boolean;
-                  target_contest_id: string;
-                  comments: string[];
-                  created_at: string;
-                  updated_at: string;
-                  status?: string;
-                }) => ({
-                  ...problem,
-                  status: normalizeProblemStatus(problem.status),
-                  // Take the first language version from the array (or create an empty object if details is empty)
-                  details:
-                    Array.isArray(problem.details) && problem.details.length > 0
-                      ? problem.details[0]
-                      : {
-                          language: 'en-US',
-                          title: '',
-                          background: '',
-                          statement: '',
-                          input_format: '',
-                          output_format: '',
-                          note: '',
-                        },
-                }),
+            ? draftData.problem_drafts.map((draft: DraftApiProblem) =>
+                mapDraftToProblem(draft),
               )
             : [];
 
@@ -308,6 +451,7 @@ const ProblemSetting = () => {
             ? publishedData.problems.map(
                 (problem: {
                   problem_id: string;
+                  problem_draft_id?: string;
                   title: Array<{ language: string; title: string }>;
                   status: string;
                   creator?: { user_id: string; username: string };
@@ -335,6 +479,8 @@ const ProblemSetting = () => {
                   // Initial problem object with title from list endpoint
                   return {
                     problem_id: problem.problem_id,
+                    problem_draft_id: problem.problem_draft_id,
+                    submitted_problem_id: problem.problem_id,
                     title: problem.title,
                     status: normalizeProblemStatus(problem.status),
                     creator: problem.creator,
@@ -404,7 +550,18 @@ const ProblemSetting = () => {
               currentUserId) ||
             problem.type === 'draft'));
 
-      return matchesSearchTerm && matchesCurrentUser;
+      // Filter by active tab
+      if (activeTab === 'all') {
+        return matchesSearchTerm && matchesCurrentUser;
+      }
+
+      const isDraft =
+        problem.status === 'draft' ||
+        problem.status === 'needs_revision' ||
+        problem.status === 'testing_changes_requested';
+      const matchesTab = activeTab === 'drafts' ? isDraft : !isDraft;
+
+      return matchesSearchTerm && matchesCurrentUser && matchesTab;
     });
 
     if (!sortColumn) {
@@ -454,6 +611,7 @@ const ProblemSetting = () => {
     showMyProblemsOnly,
     sortColumn,
     sortDirection,
+    activeTab,
   ]);
 
   // Sort problems based on current sort column and direction
@@ -752,163 +910,115 @@ const ProblemSetting = () => {
     }
   };
 
+  const handleEditPublishedProblem = async (problemId?: string) => {
+    const baseProblemId =
+      problemId ||
+      editingProblemId ||
+      currentProblem?.submitted_problem_id ||
+      null;
+
+    if (!baseProblemId) {
+      toast.error('Unable to determine which problem to edit.');
+      return;
+    }
+
+    const loadingToast = toast.loading('Preparing editable draft...');
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/problems/${baseProblemId}/checkout-draft`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'abc',
+          },
+          credentials: 'include',
+        },
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.message || 'Failed to prepare draft');
+      }
+
+      const data = await response.json();
+      const draftProblem = mapDraftToProblem(
+        data.problem_draft as DraftApiProblem,
+      );
+      draftProblem.submitted_problem_id =
+        draftProblem.submitted_problem_id || baseProblemId;
+      draftProblem.status = currentProblem?.status || draftProblem.status;
+
+      setProblemDrafts((prevDrafts) => {
+        const withoutCurrent = prevDrafts.filter(
+          (draft) => draft.problem_draft_id !== draftProblem.problem_draft_id,
+        );
+        return [...withoutCurrent, draftProblem];
+      });
+
+      setCurrentProblem(draftProblem);
+      setCurrentProblemType('draft');
+      setDetailMode('edit');
+      setEditingProblemId(baseProblemId);
+      setCurrentView('detail');
+      toast.success('Draft ready for editing');
+    } catch (error) {
+      console.error('Error preparing draft for edit:', error);
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to prepare draft',
+      );
+    } finally {
+      toast.dismiss(loadingToast);
+    }
+  };
+
   useEffect(() => {
     console.log('Current problem type:', currentProblemType);
     console.log('Current problem:', currentProblem);
   }, [currentProblemType, currentProblem]);
 
   const handleProblemClick = (id: string, type: ProblemType) => {
-    // Find the selected problem and set the view to detail
     if (type === 'draft') {
       const problem = problemDrafts.find((p) => p.problem_draft_id === id);
       if (problem) {
         setCurrentProblem(problem);
         setCurrentProblemType('draft');
+        setDetailMode('edit');
+        setEditingProblemId(problem.submitted_problem_id || null);
         setCurrentView('detail');
       }
     } else if (type === 'published') {
-      const problem = publishedProblems.find((p) => p.problem_id === id);
-      if (problem) {
-        // Fetch full problem details when viewing a published problem
-        const loadingToast = toast.loading('Loading problem details...');
-
-        fetch(`${API_BASE_URL}/problems/${id}`, {
-          method: 'GET',
-          mode: 'cors',
-          headers: {
-            'ngrok-skip-browser-warning': 'abc',
-          },
-          credentials: 'include',
-        })
-          .then((response) => {
-            if (!response.ok) {
-              throw new Error('Failed to load problem details');
-            }
-            return response.json();
-          })
-          .then((data) => {
-            toast.dismiss(loadingToast);
-
-            const latestVersion = data.problem.versions[0];
-
-            // Get the English details or fallback to first available
-            const detailsObj =
-              Array.isArray(latestVersion.details) &&
-              latestVersion.details.length > 0
-                ? latestVersion.details.find(
-                    (d: { language: string }) => d.language === 'en-US',
-                  ) || latestVersion.details[0]
-                : {
-                    language: 'en-US',
-                    title: '',
-                    background: '',
-                    statement: '',
-                    input_format: '',
-                    output_format: '',
-                    note: '',
-                  };
-
-            // Convert to our internal Problem format
-            const convertedProblem: Problem = {
-              problem_draft_id: data.problem.problem_id,
-              // expose versions so ProblemDetail can show them
-              versions: Array.isArray(data.problem.versions)
-                ? data.problem.versions.map((v: Record<string, unknown>) => ({
-                    version_id: v.version_id as string,
-                    details: (v.details as unknown[]) || [],
-                    examples: (v.examples as unknown[]) || [],
-                    problem_difficulty:
-                      (v.problem_difficulty as unknown) || undefined,
-                    created_at: v.created_at as string,
-                  }))
-                : [],
-
-              details: {
-                language: detailsObj.language,
-                title: detailsObj.title,
-                background: detailsObj.background || '',
-                statement: detailsObj.statement || '',
-                input_format: detailsObj.input_format || '',
-                output_format: detailsObj.output_format || '',
-                note: detailsObj.note || '',
-              },
-              examples: Array.isArray(latestVersion.examples)
-                ? latestVersion.examples
-                : [],
-              problem_difficulty_id:
-                latestVersion.problem_difficulty?.problem_difficulty_id || '',
-              is_submitted: true,
-              target_contest_id: data.problem.target_contest?.id || '',
-              comments: Array.isArray(data.problem.comments)
-                ? data.problem.comments
-                : [],
-              created_at: data.problem.created_at,
-              updated_at: data.problem.updated_at,
-              status: normalizeProblemStatus(data.problem.status),
-            };
-
-            setCurrentProblem(convertedProblem);
-            setCurrentProblemType('published');
-            setCurrentView('detail');
-          })
-          .catch((error) => {
-            console.error('Error fetching problem details:', error);
-            toast.dismiss(loadingToast);
-            toast.error(
-              error instanceof Error
-                ? error.message
-                : 'Failed to load problem details',
-            );
-
-            // Fallback to basic details if full details fetch fails
-            const convertedProblem: Problem = {
-              problem_draft_id: problem.problem_id,
-              details: {
-                language: 'en-US',
-                title:
-                  Array.isArray(problem.title) && problem.title.length > 0
-                    ? (
-                        problem.title.find(
-                          (t: { language: string; title: string }) =>
-                            t.language === 'en-US',
-                        ) || problem.title[0]
-                      ).title
-                    : '',
-                background: '',
-                statement: '',
-                input_format: '',
-                output_format: '',
-                note: '',
-              },
-              examples: [],
-              problem_difficulty_id:
-                problem.problem_difficulty?.problem_difficulty_id || '',
-              is_submitted: true,
-              target_contest_id: '',
-              comments: [],
-              created_at: problem.created_at,
-              updated_at: problem.updated_at,
-              status: normalizeProblemStatus(problem.status),
-            };
-
-            setCurrentProblem(convertedProblem);
-            setCurrentProblemType('published');
-            setCurrentView('detail');
-          });
-      }
+      loadPublishedProblem(id);
     }
   };
 
   const handleAddNewProblem = () => {
-    // Switch to new problem view
     setCurrentProblem(null);
     setCurrentProblemType('draft');
+    setDetailMode('edit');
+    setEditingProblemId(null);
     setCurrentView('detail');
   };
 
   const handleBackToList = () => {
     setCurrentView('list');
     setCurrentProblem(null);
+    setCurrentProblemType('draft');
+    setDetailMode('edit');
+    setEditingProblemId(null);
+  };
+
+  const handleDetailCancel = () => {
+    if (
+      detailMode === 'edit' &&
+      editingProblemId &&
+      currentProblem?.submitted_problem_id === editingProblemId
+    ) {
+      loadPublishedProblem(editingProblemId, { showToast: false });
+      return;
+    }
+
+    handleBackToList();
   };
 
   // Navigation to chat for a specific problem
@@ -951,6 +1061,43 @@ const ProblemSetting = () => {
               </button>
             </div>
           </div>
+
+          {/* Tabs for All, Drafts and Submissions */}
+          <div className="flex border-b border-slate-700/50 px-6">
+            <button
+              onClick={() => setActiveTab('all')}
+              className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
+                activeTab === 'all'
+                  ? 'border-indigo-500 text-indigo-400'
+                  : 'border-transparent text-slate-400 hover:text-slate-300'
+              }`}
+              type="button"
+            >
+              All Problems
+            </button>
+            <button
+              onClick={() => setActiveTab('drafts')}
+              className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
+                activeTab === 'drafts'
+                  ? 'border-indigo-500 text-indigo-400'
+                  : 'border-transparent text-slate-400 hover:text-slate-300'
+              }`}
+              type="button"
+            >
+              Drafts & Revisions
+            </button>
+            <button
+              onClick={() => setActiveTab('submissions')}
+              className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
+                activeTab === 'submissions'
+                  ? 'border-indigo-500 text-indigo-400'
+                  : 'border-transparent text-slate-400 hover:text-slate-300'
+              }`}
+              type="button"
+            >
+              Submissions
+            </button>
+          </div>
           <ProblemList
             problems={filteredAndSortedProblems}
             onProblemClick={handleProblemClick}
@@ -968,93 +1115,287 @@ const ProblemSetting = () => {
       )}
 
       {currentView === 'detail' && (
-        <ProblemDetail
-          problem={currentProblem}
-          isReadOnly={
-            currentProblemType === 'published' &&
-            currentProblem?.status !== 'review_changes_requested'
-          }
-          onSave={async (problem) => {
-            if (
-              currentProblemType === 'draft' ||
-              currentProblem?.status === 'review_changes_requested'
-            ) {
-              const isEditingExisting = Boolean(currentProblem);
-
-              // Build payload; include problem_draft_id only for existing drafts
-              const apiProblemData: SaveProblemPayload = {
-                details: [problem.details],
-                examples: problem.examples,
-                problem_difficulty_id:
-                  problem.problem_difficulty_id ||
-                  '01969fec-37ad-7908-bd91-a70a3b96ac96',
-              };
-              if (isEditingExisting && problem.problem_draft_id) {
-                apiProblemData.problem_draft_id = problem.problem_draft_id;
-              }
-
-              const loadingToast = toast.loading('Saving problem...');
-              try {
-                const response = await fetch(`${API_BASE_URL}/problem-drafts`, {
-                  method: 'PUT',
-                  headers: {
-                    'Content-Type': 'application/json',
-                    'ngrok-skip-browser-warning': 'abc',
-                  },
-                  credentials: 'include',
-                  body: JSON.stringify(apiProblemData),
-                });
-
-                if (!response.ok) {
-                  throw new Error('Failed to save problem');
+        <>
+          {currentProblem &&
+          currentProblemType === 'published' &&
+          detailMode === 'view' ? (
+            <ProblemReadOnlyView
+              problem={currentProblem}
+              problemType={currentProblemType}
+              onBack={handleBackToList}
+              onEdit={() => {
+                // For published problems, use problem_id; for drafts use submitted_problem_id
+                const problemId =
+                  'problem_id' in currentProblem
+                    ? (currentProblem as { problem_id?: string }).problem_id
+                    : (currentProblem as Problem).submitted_problem_id;
+                if (problemId) {
+                  handleEditPublishedProblem(problemId);
                 }
-                const data = await response.json();
-                const serverId: string =
-                  data?.problem_draft_id || problem.problem_draft_id;
+              }}
+            />
+          ) : (
+            <ProblemDetail
+              problem={currentProblem}
+              isReadOnly={false}
+              onSave={async (problem) => {
+                // Check if this is an edit of an existing problem
+                const isEditing = Boolean(problem.submitted_problem_id);
 
-                // Normalize local state to use the server-assigned ID
-                if (isEditingExisting) {
-                  // Update existing draft entry; replace id if backend returned a different one
-                  setProblemDrafts((prevDrafts) =>
-                    prevDrafts.map((draft) =>
-                      draft.problem_draft_id === problem.problem_draft_id
-                        ? { ...problem, problem_draft_id: serverId }
-                        : draft,
-                    ),
-                  );
-                } else {
-                  // New draft: add using the server ID
-                  const nowIso = new Date().toISOString();
-                  const normalizedProblem: Problem = {
-                    ...problem,
-                    problem_draft_id: serverId,
-                    created_at: problem.created_at || nowIso,
-                    updated_at: problem.updated_at || nowIso,
-                  };
-                  setProblemDrafts((prevDrafts) => {
-                    const withoutDuplicate = prevDrafts.filter(
-                      (draft) => draft.problem_draft_id !== serverId,
-                    );
-                    return [...withoutDuplicate, normalizedProblem];
-                  });
+                const apiProblemData: SaveProblemPayload = {
+                  details: [problem.details],
+                  examples: problem.examples,
+                  problem_difficulty_id:
+                    problem.problem_difficulty_id ||
+                    '01969fec-37ad-7908-bd91-a70a3b96ac96',
+                };
+                if (problem.problem_draft_id) {
+                  apiProblemData.problem_draft_id = problem.problem_draft_id;
                 }
 
-                toast.dismiss(loadingToast);
-                toast.success('Problem saved successfully!');
-                handleBackToList();
-              } catch (error) {
-                console.error('Error saving problem:', error);
-                toast.dismiss(loadingToast);
-                toast.error(
-                  error instanceof Error
-                    ? error.message
-                    : 'Failed to save problem',
+                const loadingToast = toast.loading(
+                  isEditing ? 'Saving changes...' : 'Saving problem...',
                 );
-              }
-            }
-          }}
-          onCancel={handleBackToList}
-        />
+                try {
+                  // First save the draft
+                  const response = await fetch(
+                    `${API_BASE_URL}/problem-drafts`,
+                    {
+                      method: 'PUT',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'ngrok-skip-browser-warning': 'abc',
+                      },
+                      credentials: 'include',
+                      body: JSON.stringify(apiProblemData),
+                    },
+                  );
+
+                  if (!response.ok) {
+                    throw new Error('Failed to save problem');
+                  }
+                  const data = await response.json();
+                  const serverId: string =
+                    data?.problem_draft_id || problem.problem_draft_id;
+
+                  if (isEditing) {
+                    // For editing: submit the draft to update the problem
+                    const submitResponse = await fetch(
+                      `${API_BASE_URL}/problem-drafts/${serverId}/submit`,
+                      {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'ngrok-skip-browser-warning': 'abc',
+                        },
+                        credentials: 'include',
+                      },
+                    );
+
+                    if (!submitResponse.ok) {
+                      const errorData = await submitResponse.json();
+                      throw new Error(
+                        errorData.message || 'Failed to submit changes',
+                      );
+                    }
+
+                    // Remove the draft from local state
+                    setProblemDrafts((prevDrafts) =>
+                      prevDrafts.filter(
+                        (draft) => draft.problem_draft_id !== serverId,
+                      ),
+                    );
+
+                    // Reload published problems to show the updated status
+                    const publishedResponse = await fetch(
+                      `${API_BASE_URL}/problems`,
+                      {
+                        method: 'GET',
+                        mode: 'cors',
+                        headers: {
+                          'ngrok-skip-browser-warning': 'abc',
+                        },
+                        credentials: 'include',
+                      },
+                    );
+
+                    if (publishedResponse.ok) {
+                      const publishedData = await publishedResponse.json();
+                      const transformedPublishedProblems = Array.isArray(
+                        publishedData?.problems,
+                      )
+                        ? publishedData.problems.map(
+                            (problem: {
+                              problem_id: string;
+                              problem_draft_id?: string;
+                              title: Array<{ language: string; title: string }>;
+                              status: string;
+                              creator?: { user_id: string; username: string };
+                              reviewer?: { user_id: string; username: string };
+                              testers?: Array<{
+                                user_id: string;
+                                username: string;
+                              }>;
+                              target_contest: null | unknown;
+                              assigned_contest: null | unknown;
+                              problem_difficulty: {
+                                problem_difficulty_id: string;
+                                display_names: Array<{
+                                  language: string;
+                                  display_name: string;
+                                }>;
+                              };
+                              created_at: string;
+                              updated_at: string;
+                            }) => ({
+                              problem_id: problem.problem_id,
+                              problem_draft_id: problem.problem_draft_id,
+                              submitted_problem_id: problem.problem_id,
+                              title: problem.title,
+                              status: normalizeProblemStatus(problem.status),
+                              creator: problem.creator,
+                              reviewer: problem.reviewer,
+                              testers: problem.testers,
+                              target_contest: problem.target_contest,
+                              assigned_contest: problem.assigned_contest,
+                              problem_difficulty: problem.problem_difficulty,
+                              created_at: problem.created_at,
+                              updated_at: problem.updated_at,
+                              details: {
+                                language:
+                                  problem.title?.[0]?.language || 'en-US',
+                                title: problem.title?.[0]?.title || '',
+                                background: '',
+                                statement: '',
+                                input_format: '',
+                                output_format: '',
+                                note: '',
+                              },
+                              examples: [],
+                              comments: [],
+                            }),
+                          )
+                        : [];
+                      setPublishedProblems(transformedPublishedProblems);
+                    }
+
+                    toast.dismiss(loadingToast);
+                    toast.success('Changes saved successfully!');
+                    handleBackToList();
+                  } else {
+                    // For new drafts: just save
+                    const nowIso = new Date().toISOString();
+                    const normalizedProblem: Problem = {
+                      ...problem,
+                      problem_draft_id: serverId,
+                      created_at: problem.created_at || nowIso,
+                      updated_at: problem.updated_at || nowIso,
+                    };
+
+                    setProblemDrafts((prevDrafts) => {
+                      // Remove any existing draft with the same ID or empty ID
+                      const withoutCurrent = prevDrafts.filter(
+                        (draft) =>
+                          draft.problem_draft_id !== serverId &&
+                          draft.problem_draft_id !== '',
+                      );
+                      return [...withoutCurrent, normalizedProblem];
+                    });
+
+                    toast.dismiss(loadingToast);
+                    toast.success('Problem saved successfully!');
+                    handleBackToList();
+                  }
+                } catch (error) {
+                  console.error('Error saving problem:', error);
+                  toast.dismiss(loadingToast);
+                  toast.error(
+                    error instanceof Error
+                      ? error.message
+                      : 'Failed to save problem',
+                  );
+                }
+              }}
+              {...(!currentProblem?.submitted_problem_id && {
+                onSubmit: async (problem) => {
+                  // Ensure we have a server-side draft ID before submitting
+                  let draftId = problem.problem_draft_id;
+                  try {
+                    if (
+                      !draftId ||
+                      !problemDrafts.some((d) => d.problem_draft_id === draftId)
+                    ) {
+                      const apiProblemData: SaveProblemPayload = {
+                        details: [problem.details],
+                        examples: problem.examples,
+                        problem_difficulty_id:
+                          problem.problem_difficulty_id ||
+                          '01969fec-37ad-7908-bd91-a70a3b96ac96',
+                      };
+                      if (draftId) {
+                        apiProblemData.problem_draft_id = draftId;
+                      }
+
+                      const savingToast = toast.loading(
+                        'Saving draft before submitting...',
+                      );
+                      const saveResp = await fetch(
+                        `${API_BASE_URL}/problem-drafts`,
+                        {
+                          method: 'PUT',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'ngrok-skip-browser-warning': 'abc',
+                          },
+                          credentials: 'include',
+                          body: JSON.stringify(apiProblemData),
+                        },
+                      );
+                      if (!saveResp.ok) {
+                        const err = await saveResp.json().catch(() => ({}));
+                        throw new Error(err.message || 'Failed to save draft');
+                      }
+                      const saveData = await saveResp.json();
+                      draftId = saveData?.problem_draft_id || draftId;
+
+                      // Update local list with the saved draft
+                      if (draftId) {
+                        const nowIso = new Date().toISOString();
+                        const normalized: Problem = {
+                          ...problem,
+                          problem_draft_id: draftId,
+                          is_submitted: false,
+                          created_at: problem.created_at || nowIso,
+                          updated_at: nowIso,
+                        };
+                        setProblemDrafts((prev) => {
+                          const withoutDup = prev.filter(
+                            (d) => d.problem_draft_id !== draftId,
+                          );
+                          return [...withoutDup, normalized];
+                        });
+                      }
+                      toast.dismiss(savingToast);
+                    }
+
+                    if (!draftId) {
+                      throw new Error('No draft ID available to submit');
+                    }
+                    await handleSubmitProblem(draftId);
+                  } catch (e) {
+                    console.error('Submit flow failed:', e);
+                    toast.error(
+                      e instanceof Error
+                        ? e.message
+                        : 'Failed to submit problem',
+                    );
+                  }
+                },
+              })}
+              onCancel={handleDetailCancel}
+            />
+          )}
+        </>
       )}
     </div>
   );

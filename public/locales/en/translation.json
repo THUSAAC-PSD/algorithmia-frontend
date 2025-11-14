@@ -12,17 +12,14 @@
     "input": "Input",
     "output": "Output",
     "statuses": {
-      "pending": "Pending",
-      "approved": "Approved",
-      "rejected": "Rejected",
-      "needs_changes": "Needs Changes",
       "draft": "Draft",
       "pending_review": "Pending Review",
-      "review_changes_requested": "Review Changes Requested",
+      "needs_revision": "Needs Revision",
       "pending_testing": "Pending Testing",
       "testing_changes_requested": "Testing Changes Requested",
       "awaiting_final_check": "Awaiting Final Check",
-      "completed": "Completed"
+      "completed": "Completed",
+      "rejected": "Rejected"
     }
   },
   "problemDetail": {
@@ -68,8 +65,7 @@
     "rejected": "Rejected",
     "needs_revision": "Needs Revision",
     "completed": "Completed",
-    "awaiting_final_check": "Awaiting Final Check",
-    "approved_for_testing": "Approved for Testing"
+    "awaiting_final_check": "Awaiting Final Check"
   },
   "problemVerification": {
     "openChat": "Open Chat",
@@ -78,7 +74,7 @@
     "title": "Problem Verification",
     "statuses": {
       "pending_review": "Pending Review",
-      "review_changes_requested": "Review Changes Requested",
+      "needs_revision": "Needs Revision",
       "pending_testing": "Pending Testing",
       "testing_changes_requested": "Testing Changes Requested",
       "awaiting_final_check": "Awaiting Final Check",
@@ -118,7 +114,7 @@
     "title": "Problem Review",
     "statuses": {
       "pending_review": "Pending Review",
-      "review_changes_requested": "Review Changes Requested",
+      "needs_revision": "Needs Revision",
       "pending_testing": "Pending Testing",
       "testing_changes_requested": "Testing Changes Requested",
       "awaiting_final_check": "Awaiting Final Check",

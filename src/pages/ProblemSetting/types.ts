@@ -2,6 +2,7 @@ import { ProblemStatus } from '../../types/problem-status';
 
 export interface Problem {
   problem_draft_id: string;
+  submitted_problem_id?: string; // ID of the submitted problem, if this draft has been submitted
   details: ProblemDetails;
   examples: ProblemExample[];
   problem_difficulty_id: string;
@@ -22,11 +23,24 @@ export interface ProblemVersion {
   problem_difficulty?: {
     problem_difficulty_id: string;
   };
+  review?: {
+    reviewer_id: string;
+    comment: string;
+    decision: string;
+    created_at: string;
+  };
+  test_results?: Array<{
+    tester_id: string;
+    status: string;
+    comment: string;
+    created_at: string;
+  }>;
   created_at?: string;
 }
 
 export interface PublishedProblem {
   problem_id: string;
+  problem_draft_id?: string;
   title: {
     language: string;
     title: string;
@@ -59,7 +73,7 @@ export interface PublishedProblem {
   // Will be populated after fetching details
   details?: ProblemDetails;
   examples?: ProblemExample[];
-  comments?: string[];
+  versions?: ProblemVersion[];
 }
 
 export interface ProblemDetails {
@@ -97,5 +111,6 @@ export interface CombinedProblemListItem {
   created_at: string;
   updated_at: string;
   base_problem_id?: string;
+  draft_id?: string;
   originalProblem: Problem | PublishedProblem;
 }

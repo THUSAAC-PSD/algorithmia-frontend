@@ -291,7 +291,7 @@ const ProblemVerification = () => {
     const statusStyles: Record<ProblemStatus, string> = {
       draft: 'bg-slate-500/20 text-slate-300',
       pending_review: 'bg-yellow-500/20 text-yellow-400',
-      review_changes_requested: 'bg-orange-500/20 text-orange-400',
+      needs_revision: 'bg-orange-500/20 text-orange-400',
       pending_testing: 'bg-indigo-500/20 text-indigo-300',
       testing_changes_requested: 'bg-purple-500/20 text-purple-300',
       awaiting_final_check: 'bg-blue-500/20 text-blue-300',
@@ -327,7 +327,7 @@ const ProblemVerification = () => {
           credentials: 'include',
           body: JSON.stringify({
             feedback: feedbackText,
-            status: 'review_changes_requested',
+            status: 'needs_revision',
           }),
         },
       );
@@ -339,7 +339,7 @@ const ProblemVerification = () => {
       }
 
       // Update local state
-      await handleStatusChange(activeTabId, 'review_changes_requested');
+      await handleStatusChange(activeTabId, 'needs_revision');
 
       toast.success(t('problemVerification.feedbackSubmitted'));
       setFeedbackText('');

@@ -293,6 +293,7 @@ const Chat = () => {
         type: string;
         payload: {
           problem_id: string;
+          submitter?: { id: string; username: string };
           reviewer?: { id: string; username: string };
           tester?: { id: string; username: string };
           decision?: string;
@@ -351,6 +352,30 @@ const Chat = () => {
             [problemId]: [...problemMessages, testedMessage],
           };
         });
+      } else if (
+        typedData.type === 'submitted' ||
+        typedData.type === 'edited'
+      ) {
+        const actorName = typedData.payload.submitter?.username || 'System';
+        const systemMessage: SystemMessage = {
+          message_type: typedData.type,
+          payload: {
+            message:
+              typedData.type === 'submitted'
+                ? `${actorName} submitted the problem`
+                : `${actorName} updated the problem`,
+          },
+          timestamp: typedData.payload.timestamp,
+        };
+
+        setMessages((prev) => {
+          const problemId = typedData.payload.problem_id;
+          const problemMessages = prev[problemId] || [];
+          return {
+            ...prev,
+            [problemId]: [...problemMessages, systemMessage],
+          };
+        });
       } else {
         // For other system message types (submitted, completed, etc.)
         const systemMessage: SystemMessage = {
@@ -405,6 +430,7 @@ const Chat = () => {
 
     // Listen for status updates
     chatWebSocket.on('submitted', handleStatusUpdates);
+    chatWebSocket.on('edited', handleStatusUpdates);
     chatWebSocket.on('reviewed', handleStatusUpdates);
     chatWebSocket.on('tested', handleStatusUpdates);
     chatWebSocket.on('completed', handleStatusUpdates);
@@ -413,6 +439,7 @@ const Chat = () => {
     return () => {
       chatWebSocket.off('user', handleUserMessage);
       chatWebSocket.off('submitted', handleStatusUpdates);
+      chatWebSocket.off('edited', handleStatusUpdates);
       chatWebSocket.off('reviewed', handleStatusUpdates);
       chatWebSocket.off('tested', handleStatusUpdates);
       chatWebSocket.off('completed', handleStatusUpdates);

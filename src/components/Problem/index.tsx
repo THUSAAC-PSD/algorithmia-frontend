@@ -118,7 +118,7 @@ const Problem: React.FC<ProblemProps> = ({ problem, language }) => {
     const statusStyles: Record<ProblemStatus, string> = {
       draft: 'bg-slate-500/20 text-slate-300',
       pending_review: 'bg-yellow-500/20 text-yellow-400',
-      review_changes_requested: 'bg-orange-500/20 text-orange-400',
+      needs_revision: 'bg-orange-500/20 text-orange-400',
       pending_testing: 'bg-indigo-500/20 text-indigo-300',
       testing_changes_requested: 'bg-purple-500/20 text-purple-300',
       awaiting_final_check: 'bg-blue-500/20 text-blue-300',
@@ -129,7 +129,7 @@ const Problem: React.FC<ProblemProps> = ({ problem, language }) => {
     const labelKey: Record<ProblemStatus, string> = {
       draft: 'problem.statuses.draft',
       pending_review: 'problem.statuses.pending_review',
-      review_changes_requested: 'problem.statuses.review_changes_requested',
+      needs_revision: 'problem.statuses.needs_revision',
       pending_testing: 'problem.statuses.pending_testing',
       testing_changes_requested: 'problem.statuses.testing_changes_requested',
       awaiting_final_check: 'problem.statuses.awaiting_final_check',

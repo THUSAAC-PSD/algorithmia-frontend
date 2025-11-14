@@ -65,7 +65,7 @@ const ProblemList: React.FC<ProblemListProps> = ({
   const statusStyles: Record<ProblemStatus, string> = {
     draft: 'bg-yellow-100 text-yellow-800',
     pending_review: 'bg-blue-100 text-blue-800',
-    review_changes_requested: 'bg-orange-100 text-orange-800',
+    needs_revision: 'bg-orange-100 text-orange-800',
     pending_testing: 'bg-indigo-100 text-indigo-800',
     testing_changes_requested: 'bg-purple-100 text-purple-800',
     awaiting_final_check: 'bg-sky-100 text-sky-800',
@@ -75,13 +75,13 @@ const ProblemList: React.FC<ProblemListProps> = ({
 
   const submitEligibleStatuses = new Set<ProblemStatus>([
     'draft',
-    'review_changes_requested',
+    'needs_revision',
     'testing_changes_requested',
   ]);
 
   const chatEligibleStatuses = new Set<ProblemStatus>([
     'pending_review',
-    'review_changes_requested',
+    'needs_revision',
     'pending_testing',
     'testing_changes_requested',
     'awaiting_final_check',
@@ -210,18 +210,21 @@ const ProblemList: React.FC<ProblemListProps> = ({
                     })()}
                   </td>
                   <td className="px-6 py-4 text-sm flex space-x-2">
-                    {(submitEligibleStatuses.has(problem.status) ||
-                      submitEligibleStatuses.has(
-                        normalizeProblemStatus(problem.status),
-                      )) && (
-                      <button
-                        onClick={() => onSubmitProblem(problem.id)}
-                        className="px-3 py-1 bg-indigo-500 hover:bg-indigo-600 rounded text-white text-xs"
-                        type="button"
-                      >
-                        {t('problemList.submit')}
-                      </button>
-                    )}
+                    {(() => {
+                      const draftId = problem.draft_id ?? problem.id;
+                      return submitEligibleStatuses.has(problem.status) ||
+                        submitEligibleStatuses.has(
+                          normalizeProblemStatus(problem.status),
+                        ) ? (
+                        <button
+                          onClick={() => onSubmitProblem(draftId)}
+                          className="px-3 py-1 bg-indigo-500 hover:bg-indigo-600 rounded text-white text-xs"
+                          type="button"
+                        >
+                          {t('problemList.submit')}
+                        </button>
+                      ) : null;
+                    })()}
                     {problem.type === 'draft' && (
                       <>
                         <button

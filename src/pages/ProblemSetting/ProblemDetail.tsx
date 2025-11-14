@@ -3,7 +3,7 @@ import {
   PlusIcon,
   TrashIcon,
 } from '@heroicons/react/24/outline';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { EditorRef, MilkdownEditorWrapper } from '../../components/Editor';
@@ -29,7 +29,9 @@ interface ProblemFormProps {
   problem: Problem | null;
   isReadOnly?: boolean; // Add isReadOnly prop
   onSave: (problem: Problem) => void;
+  onSubmit?: (problem: Problem) => void; // New callback for submit
   onCancel: () => void;
+  onChange?: () => void;
 }
 
 type SampleRow = {
@@ -42,6 +44,7 @@ const ProblemDetail = ({
   problem,
   isReadOnly = false,
   onSave,
+  onSubmit,
   onCancel,
 }: ProblemFormProps) => {
   const { t } = useTranslation();
@@ -56,22 +59,24 @@ const ProblemDetail = ({
   const output_format_ref = useRef<EditorRef>(null);
   const note_ref = useRef<EditorRef>(null);
 
-  const createSampleRow = (
-    sample?: { input?: string; output?: string } | null,
-  ): SampleRow => ({
-    id: crypto.randomUUID(),
-    input: sample?.input ?? '',
-    output: sample?.output ?? '',
-  });
+  const createSampleRow = useCallback(
+    (sample?: { input?: string; output?: string } | null): SampleRow => ({
+      id: crypto.randomUUID(),
+      input: sample?.input ?? '',
+      output: sample?.output ?? '',
+    }),
+    [],
+  );
 
-  const normalizeSamples = (
-    source?: Array<{ input: string; output: string }> | null,
-  ): SampleRow[] => {
-    if (!Array.isArray(source) || source.length === 0) {
-      return [createSampleRow()];
-    }
-    return source.map((sample) => createSampleRow(sample));
-  };
+  const normalizeSamples = useCallback(
+    (source?: Array<{ input: string; output: string }> | null): SampleRow[] => {
+      if (!Array.isArray(source) || source.length === 0) {
+        return [createSampleRow()];
+      }
+      return source.map((sample) => createSampleRow(sample));
+    },
+    [createSampleRow],
+  );
 
   const [samples, setSamples] = useState<SampleRow[]>(() => {
     if (problem?.versions && problem.versions.length > 0) {
@@ -136,7 +141,7 @@ const ProblemDetail = ({
       );
       setDifficulty(problem?.problem_difficulty_id || '');
     }
-  }, [problem, selectedVersionIndex]);
+  }, [problem, selectedVersionIndex, normalizeSamples]);
 
   // Fetch difficulties on mount
   useEffect(() => {
@@ -190,7 +195,8 @@ const ProblemDetail = ({
   const handleSubmit = () => {
     setSubmitDisabled(true);
     const current_problem: Problem = {
-      problem_draft_id: problem?.problem_draft_id || crypto.randomUUID(),
+      problem_draft_id: problem?.problem_draft_id || '',
+      submitted_problem_id: problem?.submitted_problem_id,
       details: {
         language,
         title,
@@ -209,6 +215,35 @@ const ProblemDetail = ({
       updated_at: new Date().toLocaleString(),
     };
     onSave(current_problem);
+    setSubmitDisabled(false);
+  };
+
+  const handleSubmitForReview = () => {
+    if (!onSubmit) return;
+
+    setSubmitDisabled(true);
+    const current_problem: Problem = {
+      problem_draft_id: problem?.problem_draft_id || '',
+      submitted_problem_id: problem?.submitted_problem_id,
+      details: {
+        language,
+        title,
+        background: background_ref.current?.getContent() || '',
+        statement: statement_ref.current?.getContent() || '',
+        input_format: input_format_ref.current?.getContent() || '',
+        output_format: output_format_ref.current?.getContent() || '',
+        note: note_ref.current?.getContent() || '',
+      },
+      examples: samples.map(({ input, output }) => ({ input, output })),
+      problem_difficulty_id: difficulty,
+      is_submitted: true,
+      target_contest_id: contest,
+      comments: problem?.comments || [],
+      created_at: problem?.created_at || new Date().toLocaleString(),
+      updated_at: new Date().toLocaleString(),
+    };
+    onSubmit(current_problem);
+    setSubmitDisabled(false);
   };
 
   const addSample = () => {
@@ -259,264 +294,350 @@ const ProblemDetail = ({
   };
 
   return (
-    <div className="p-6 flex flex-col w-full overflow-y-auto">
-      <div className="mb-6 flex items-center">
+    <div className="flex flex-col w-full h-full overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center gap-4 px-8 py-6 bg-slate-800/50 border-b border-slate-700">
         <button
           type="button"
           onClick={handleCancel}
-          className="mr-4 p-1 rounded-full hover:bg-slate-600"
+          className="p-2 rounded-lg hover:bg-slate-700 transition-colors"
         >
-          <ArrowLeftIcon className="w-5 h-5 text-gray-200" />
+          <ArrowLeftIcon className="w-5 h-5 text-gray-300" />
         </button>
         <h1 className="text-2xl font-bold text-white">
           {isReadOnly ? 'View Problem' : 'Problem Detail'}
         </h1>
       </div>
 
-      <div className="bg-gray rounded-lg shadow p-6 bg-slate-800 shadow-slate-800">
-        {/* Title and Language */}
-        {problem?.versions && problem.versions.length > 1 && (
-          <div className="mb-4">
-            <label className="block text-md font-medium text-white mb-1">
-              Versions
-            </label>
-            <select
-              value={selectedVersionIndex}
-              onChange={(e) => setSelectedVersionIndex(Number(e.target.value))}
-              className="text-white px-3 py-2 border border-slate-600 rounded-md"
-              disabled={isReadOnly}
-            >
-              {problem.versions.map((v, idx) => (
-                <option key={v.version_id || idx} value={idx}>
-                  {v.created_at ? `${v.created_at}` : `Version ${idx + 1}`}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className="block text-lg font-bold text-white mb-1">
-              Title
-            </label>
-            <input
-              type="text"
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="text-white w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Enter problem title"
-              readOnly={isReadOnly}
-              disabled={isReadOnly}
-            />
-          </div>
-          <div>
-            <label className="block text-lg font-bold text-white mb-1">
-              Language
-            </label>
-            <select
-              id="language"
-              className="text-white w-full px-3 py-2.5 border border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              defaultValue={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              disabled={isReadOnly}
-            >
-              <option value="zh-CN" className="text-gray-400">
-                中文
-              </option>
-              <option value="en-US" className="text-gray-400">
-                English
-              </option>
-            </select>
-          </div>
-        </div>
-
-        {/* Problem description fields */}
-        <div className="mb-4">
-          <label className="block text-lg font-bold text-white mb-1 mt-6">
-            Background
-          </label>
-          <MilkdownEditorWrapper
-            ref={background_ref}
-            defaultValue={problem?.details.background}
-          />
-          <label className="block text-lg font-bold text-white mb-1 mt-4">
-            Statement
-          </label>
-          <MilkdownEditorWrapper
-            ref={statement_ref}
-            defaultValue={problem?.details.statement}
-          />
-          <label className="block text-lg font-bold text-white mb-1 mt-4">
-            Input Format
-          </label>
-          <MilkdownEditorWrapper
-            ref={input_format_ref}
-            defaultValue={problem?.details.input_format}
-          />
-          <label className="block text-lg font-bold text-white mb-1 mt-4">
-            Output Format
-          </label>
-          <MilkdownEditorWrapper
-            ref={output_format_ref}
-            defaultValue={problem?.details.output_format}
-          />
-          <label className="block text-lg font-bold text-white mb-1 mt-4">
-            Note
-          </label>
-          <MilkdownEditorWrapper
-            ref={note_ref}
-            defaultValue={problem?.details.note}
-          />
-
-          <div className="mt-6">
-            <div className="flex justify-between items-center mb-3">
-              <label className="block text-lg font-bold text-white">
-                Samples
+      {/* Form Content */}
+      <div className="flex-1 overflow-y-auto px-8 py-6">
+        <div className="max-w-6xl mx-auto">
+          {/* Version Selector */}
+          {problem?.versions && problem.versions.length > 1 && (
+            <div className="mb-8 p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+              <label className="block text-sm font-semibold text-gray-300 mb-2">
+                Versions
               </label>
+              <select
+                value={selectedVersionIndex}
+                onChange={(e) =>
+                  setSelectedVersionIndex(Number(e.target.value))
+                }
+                className="w-full bg-slate-700 text-white px-4 py-2.5 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                disabled={isReadOnly}
+              >
+                {problem.versions.map((v, idx) => (
+                  <option key={v.version_id || idx} value={idx}>
+                    {v.created_at ? `${v.created_at}` : `Version ${idx + 1}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Basic Information */}
+          <div className="mb-8">
+            <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+              <span className="w-1 h-5 bg-indigo-500 rounded-full"></span>
+              Basic Information
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label
+                  htmlFor="title"
+                  className="block text-sm font-semibold text-gray-300 mb-2"
+                >
+                  Title
+                </label>
+                <input
+                  type="text"
+                  id="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full bg-slate-700 text-white px-4 py-2.5 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder-gray-500"
+                  placeholder="Enter problem title"
+                  readOnly={isReadOnly}
+                  disabled={isReadOnly}
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="language"
+                  className="block text-sm font-semibold text-gray-300 mb-2"
+                >
+                  Language
+                </label>
+                <select
+                  id="language"
+                  className="w-full bg-slate-700 text-white px-4 py-2.5 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  defaultValue={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                  disabled={isReadOnly}
+                >
+                  <option value="zh-CN">中文</option>
+                  <option value="en-US">English</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Problem Description */}
+          <div className="mb-8 space-y-6">
+            <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+              <span className="w-1 h-5 bg-indigo-500 rounded-full"></span>
+              Problem Description
+            </h2>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-300 mb-2">
+                Background
+              </label>
+              <MilkdownEditorWrapper
+                ref={background_ref}
+                defaultValue={problem?.details.background}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-300 mb-2">
+                Statement
+              </label>
+              <MilkdownEditorWrapper
+                ref={statement_ref}
+                defaultValue={problem?.details.statement}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-300 mb-2">
+                Input Format
+              </label>
+              <MilkdownEditorWrapper
+                ref={input_format_ref}
+                defaultValue={problem?.details.input_format}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-300 mb-2">
+                Output Format
+              </label>
+              <MilkdownEditorWrapper
+                ref={output_format_ref}
+                defaultValue={problem?.details.output_format}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-300 mb-2">
+                Note
+              </label>
+              <MilkdownEditorWrapper
+                ref={note_ref}
+                defaultValue={problem?.details.note}
+              />
+            </div>
+          </div>
+
+          {/* Test Samples */}
+          <div className="mb-8">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <span className="w-1 h-5 bg-indigo-500 rounded-full"></span>
+                Test Samples
+              </h2>
               {!isReadOnly && (
                 <button
                   type="button"
                   onClick={addSample}
-                  className="flex items-center px-3 py-1 text-green-300 rounded-md hover:bg-green-900"
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-emerald-300 bg-emerald-900/20 border border-emerald-700/50 rounded-lg hover:bg-emerald-900/40 transition-colors"
                 >
-                  <PlusIcon className="w-4 h-4 mr-1" />
+                  <PlusIcon className="w-4 h-4" />
                   Add Sample
                 </button>
               )}
             </div>
 
-            {samples.map((sample, index) => (
-              <div
-                key={sample.id}
-                className="border border-slate-600 rounded-md p-4 mb-4 bg-slate-800"
-              >
-                <div className="flex justify-between items-center mb-3">
-                  <h3 className="text-white font-semibold">
-                    Sample #{index + 1}
-                  </h3>
-                  {!isReadOnly && (
-                    <button
-                      type="button"
-                      onClick={() => removeSample(index)}
-                      disabled={samples.length === 1}
-                      className={`flex items-center px-2 py-1 rounded-md ${
-                        samples.length === 1
-                          ? 'text-gray-400 cursor-not-allowed'
-                          : 'text-red-400 hover:bg-red-900'
-                      }`}
-                    >
-                      <TrashIcon className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
+            <div className="space-y-4">
+              {samples.map((sample, index) => (
+                <div
+                  key={sample.id}
+                  className="border border-slate-700 rounded-lg p-5 bg-slate-800/50 hover:border-slate-600 transition-colors"
+                >
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-white font-semibold text-base">
+                      Sample #{index + 1}
+                    </h3>
+                    {!isReadOnly && (
+                      <button
+                        type="button"
+                        onClick={() => removeSample(index)}
+                        disabled={samples.length === 1}
+                        className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                          samples.length === 1
+                            ? 'text-gray-500 cursor-not-allowed bg-slate-800'
+                            : 'text-red-300 bg-red-900/20 border border-red-700/50 hover:bg-red-900/40'
+                        }`}
+                      >
+                        <TrashIcon className="w-4 h-4" />
+                        Remove
+                      </button>
+                    )}
+                  </div>
 
-                <div className="flex justify-between items-start gap-4 w-full">
-                  <div className="w-1/2">
-                    <label className="block text-md font-medium text-white mb-1">
-                      Input
-                    </label>
-                    <textarea
-                      value={sample.input}
-                      onChange={(e) =>
-                        updateSample(index, 'input', e.target.value)
-                      }
-                      className="text-white w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                      rows={4}
-                      readOnly={isReadOnly}
-                      disabled={isReadOnly}
-                    />
-                  </div>
-                  <div className="w-1/2">
-                    <label className="block text-md font-medium text-white mb-1">
-                      Output
-                    </label>
-                    <textarea
-                      value={sample.output}
-                      onChange={(e) =>
-                        updateSample(index, 'output', e.target.value)
-                      }
-                      className="text-white w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                      rows={4}
-                      readOnly={isReadOnly}
-                      disabled={isReadOnly}
-                    />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-300 mb-2">
+                        Input
+                      </label>
+                      <textarea
+                        value={sample.input}
+                        onChange={(e) =>
+                          updateSample(index, 'input', e.target.value)
+                        }
+                        className="w-full bg-slate-700 text-white px-4 py-2.5 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder-gray-500 font-mono text-sm"
+                        rows={5}
+                        placeholder="Enter input..."
+                        readOnly={isReadOnly}
+                        disabled={isReadOnly}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-300 mb-2">
+                        Output
+                      </label>
+                      <textarea
+                        value={sample.output}
+                        onChange={(e) =>
+                          updateSample(index, 'output', e.target.value)
+                        }
+                        className="w-full bg-slate-700 text-white px-4 py-2.5 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder-gray-500 font-mono text-sm"
+                        rows={5}
+                        placeholder="Enter output..."
+                        readOnly={isReadOnly}
+                        disabled={isReadOnly}
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
 
-        <div className="grid grid-cols-2 gap-4 mt-6 mb-4">
-          <div>
-            <label className="block text-lg font-bold text-white mb-1">
-              Problem Difficulty
-            </label>
-            {isLoadingDifficulties ? (
-              <div className="text-white opacity-70">
-                Loading difficulties...
-              </div>
-            ) : errorLoadingDifficulties ? (
-              <div className="text-red-400">{errorLoadingDifficulties}</div>
-            ) : (
-              <select
-                id="problem_difficulty_id"
-                value={difficulty}
-                onChange={(e) => setDifficulty(e.target.value)}
-                className="text-white w-full px-3 py-2.5 border border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                disabled={isReadOnly}
-              >
-                {difficulties.length === 0 ? (
-                  <option value="">No difficulties available</option>
+          {/* Additional Settings */}
+          <div className="mb-8">
+            <h2 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+              <span className="w-1 h-5 bg-indigo-500 rounded-full"></span>
+              Additional Settings
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label
+                  htmlFor="problem_difficulty_id"
+                  className="block text-sm font-semibold text-gray-300 mb-2"
+                >
+                  Problem Difficulty
+                </label>
+                {isLoadingDifficulties ? (
+                  <div className="w-full bg-slate-700 text-gray-400 px-4 py-2.5 border border-slate-600 rounded-lg">
+                    Loading difficulties...
+                  </div>
+                ) : errorLoadingDifficulties ? (
+                  <div className="w-full bg-red-900/20 text-red-300 px-4 py-2.5 border border-red-700/50 rounded-lg">
+                    {errorLoadingDifficulties}
+                  </div>
                 ) : (
-                  difficulties.map((d) => (
-                    <option
-                      key={d.problem_difficulty_id}
-                      value={d.problem_difficulty_id}
-                    >
-                      {getDifficultyName(d.problem_difficulty_id)}
-                    </option>
-                  ))
+                  <select
+                    id="problem_difficulty_id"
+                    value={difficulty}
+                    onChange={(e) => setDifficulty(e.target.value)}
+                    className="w-full bg-slate-700 text-white px-4 py-2.5 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    disabled={isReadOnly}
+                  >
+                    {difficulties.length === 0 ? (
+                      <option value="">No difficulties available</option>
+                    ) : (
+                      difficulties.map((d) => (
+                        <option
+                          key={d.problem_difficulty_id}
+                          value={d.problem_difficulty_id}
+                        >
+                          {getDifficultyName(d.problem_difficulty_id)}
+                        </option>
+                      ))
+                    )}
+                  </select>
                 )}
-              </select>
+              </div>
+              <div>
+                <label
+                  htmlFor="target_contest_id"
+                  className="block text-sm font-semibold text-gray-300 mb-2"
+                >
+                  Target Contest ID
+                </label>
+                <input
+                  type="text"
+                  id="target_contest_id"
+                  value={contest}
+                  onChange={(e) => setContest(e.target.value)}
+                  className="w-full bg-slate-700 text-white px-4 py-2.5 border border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder-gray-500"
+                  placeholder="Enter target contest ID"
+                  readOnly={isReadOnly}
+                  disabled={isReadOnly}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex justify-end items-center gap-3 pt-6 border-t border-slate-700">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="px-6 py-2.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-white font-medium transition-colors"
+            >
+              {isReadOnly ? t('problemDetail.back') : 'Cancel'}
+            </button>
+            {!isReadOnly && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={submitDisabled || isLoadingDifficulties}
+                  className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg shadow-indigo-500/20"
+                >
+                  {problem?.submitted_problem_id
+                    ? 'Save Edit'
+                    : 'Save as Draft'}
+                </button>
+                {onSubmit && !problem?.submitted_problem_id && (
+                  <button
+                    type="button"
+                    onClick={handleSubmitForReview}
+                    disabled={submitDisabled || isLoadingDifficulties}
+                    className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2 shadow-lg shadow-emerald-500/20"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={2}
+                      stroke="currentColor"
+                      className="w-5 h-5"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"
+                      />
+                    </svg>
+                    Submit for Review
+                  </button>
+                )}
+              </>
             )}
           </div>
-          <div>
-            <label className="block text-lg font-bold text-white mb-1">
-              Target Contest ID
-            </label>
-            <input
-              type="text"
-              id="target_contest_id"
-              value={contest}
-              onChange={(e) => setContest(e.target.value)}
-              className="text-white w-full px-3 py-2 border border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Enter target contest ID"
-              readOnly={isReadOnly}
-              disabled={isReadOnly}
-            />
-          </div>
-        </div>
-
-        <div className="flex justify-end space-x-3 mt-6">
-          {!isReadOnly ? (
-            <button
-              type="submit"
-              onClick={handleSubmit}
-              disabled={submitDisabled || isLoadingDifficulties}
-              className="px-4 py-2 bg-indigo-500 hover:bg-indigo-600 rounded-lg text-white disabled:opacity-50"
-            >
-              {t('problemDetail.save')}
-            </button>
-          ) : null}
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-white ml-2"
-          >
-            {isReadOnly ? t('problemDetail.back') : t('problemDetail.cancel')}
-          </button>
         </div>
       </div>
     </div>

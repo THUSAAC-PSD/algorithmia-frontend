@@ -12,10 +12,14 @@
     "input": "输入",
     "output": "输出",
     "statuses": {
-      "pending": "待处理",
-      "approved": "已批准",
-      "rejected": "已拒绝",
-      "needs_changes": "需要修改"
+      "draft": "草稿",
+      "pending_review": "待审核",
+      "needs_revision": "需要修改",
+      "pending_testing": "待测试",
+      "testing_changes_requested": "测试需修改",
+      "awaiting_final_check": "等待最终检查",
+      "completed": "已完成",
+      "rejected": "已拒绝"
     }
   },
   "problemDetail": {
@@ -61,8 +65,7 @@
     "rejected": "已拒绝",
     "needs_revision": "需要修改",
     "completed": "已完成",
-    "awaiting_final_check": "等待最终检查",
-    "approved_for_testing": "已批准测试"
+    "awaiting_final_check": "等待最终检查"
   },
   "problemVerification": {
     "openChat": "开启群聊",
@@ -70,16 +73,15 @@
     "sortBy": "排序方式",
     "title": "验题",
     "statuses": {
-      "pending": "待处理",
-      "approved": "已批准",
-      "rejected": "已拒绝",
-      "needsChanges": "需要修改"
+      "pending_review": "待审核",
+      "needs_revision": "需要修改",
+      "pending_testing": "待测试",
+      "testing_changes_requested": "测试需修改",
+      "awaiting_final_check": "等待最终检查",
+      "completed": "已完成",
+      "rejected": "已拒绝"
     },
     "allStatus": "所有状态",
-    "pending": "待处理",
-    "approved": "已批准",
-    "rejected": "已拒绝",
-    "needsChanges": "需要修改",
     "searchPlaceholder": "搜索题目...",
     "noProblemsFound": "未找到题目",
     "tryAdjustingFilters": "请尝试调整筛选条件",
@@ -111,11 +113,13 @@
     "sortBy": "排序方式",
     "title": "题目审核",
     "statuses": {
-      "pending": "待处理",
-      "approved": "已批准",
-      "rejected": "已拒绝",
-      "needsChanges": "需要修改",
-      "approvedForTesting": "已批准测试"
+      "pending_review": "待审核",
+      "needs_revision": "需要修改",
+      "pending_testing": "待测试",
+      "testing_changes_requested": "测试需修改",
+      "awaiting_final_check": "等待最终检查",
+      "completed": "已完成",
+      "rejected": "已拒绝"
     },
     "newestFirst": "最新优先",
     "oldestFirst": "最早优先",

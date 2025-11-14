@@ -49,6 +49,12 @@ const SignIn = () => {
       }
       const data = await current_user.json();
       console.log(data);
+
+      // Check if user data exists
+      if (!data || !data.user) {
+        throw new Error('Invalid response from server');
+      }
+
       localStorage.setItem('isLoggedIn', 'true');
       localStorage.setItem('userRoles', JSON.stringify(data.user.roles || []));
       localStorage.setItem('userId', data.user.user_id);
