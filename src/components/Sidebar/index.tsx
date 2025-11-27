@@ -3,6 +3,7 @@ import {
   ChatBubbleLeftRightIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  Cog6ToothIcon,
   DocumentCheckIcon,
   DocumentMagnifyingGlassIcon,
   DocumentTextIcon,
@@ -59,6 +60,11 @@ const Sidebar = ({ userRoles, userName }: SidebarProps) => {
       label: t('sidebar.contestManager'),
       icon: <TrophyIcon className="w-5 h-5" />,
       show: hasRole('contest_manager') || hasRole('super_admin'),
+    },
+    {
+      id: 'settings',
+      label: t('sidebar.settings', 'Settings'),
+      icon: <Cog6ToothIcon className="w-5 h-5" />,
     },
     {
       id: 'super-admin',

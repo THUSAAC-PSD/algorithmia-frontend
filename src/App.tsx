@@ -27,6 +27,7 @@ import SuperAdmin from './pages/SuperAdmin';
 import CompetitionDetail from './pages/SuperAdmin/CompetitionDetail';
 import CompetitionManagement from './pages/SuperAdmin/Competitions';
 import PersonnelManagement from './pages/SuperAdmin/Personnel';
+import UserSettings from './pages/UserSettings';
 
 function TitleManager() {
   const location = useLocation();
@@ -44,6 +45,7 @@ function TitleManager() {
       pageName = 'Problem Verification';
     else if (path.includes('/problembank')) pageName = 'Problem Bank';
     else if (path.includes('/problemreview')) pageName = 'Problem Review';
+    else if (path.includes('/settings')) pageName = 'Settings';
     else if (path.includes('/superadmin')) pageName = 'Super Admin';
 
     // Update document title
@@ -194,6 +196,10 @@ function AppContent() {
         <Route
           path="/chat/:id?"
           element={isLoggedIn ? <Chat /> : <Navigate to="/signin" />}
+        />
+        <Route
+          path="/settings"
+          element={isLoggedIn ? <UserSettings /> : <Navigate to="/signin" />}
         />
         <Route
           path="/problemverification"

@@ -42,6 +42,7 @@
     "problemReview": "Problem Review",
     "problemBank": "Problem Bank",
     "contestManager": "Contest Management",
+    "settings": "Settings",
     "superAdmin": "Super Admin"
   },
   "problemList": {
@@ -297,6 +298,44 @@
       "createSuccess": "Contest saved successfully",
       "importSuccess": "Problem imported to contest",
       "removeSuccess": "Problem removed from contest"
+    }
+  },
+  "userSettings": {
+    "title": "User Settings",
+    "subtitle": "Manage your account security and update your password.",
+    "resetPassword": "Reset Password",
+    "passwordDescription": "Choose a strong password that you do not use elsewhere.",
+    "status": {
+      "updating": "Updating...",
+      "session": "You will stay signed in after updating."
+    },
+    "fields": {
+      "currentPassword": "Current password",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm new password"
+    },
+    "placeholders": {
+      "current": "Enter current password",
+      "new": "At least 8 characters",
+      "confirm": "Re-enter new password"
+    },
+    "hints": {
+      "title": "Password tips",
+      "tip1": "Use at least 8 characters.",
+      "tip2": "Include letters, numbers, and symbols.",
+      "tip3": "Avoid passwords you use on other sites.",
+      "short": "At least 8 characters",
+      "medium": "Meets the minimum requirement",
+      "strong": "Looks strong"
+    },
+    "actions": {
+      "save": "Update password"
+    },
+    "success": "Password updated successfully.",
+    "errors": {
+      "samePassword": "New password must be different from the current one",
+      "invalidFields": "Please fill out all fields correctly.",
+      "generic": "Unable to update password. Please try again."
     }
   },
   "common": {

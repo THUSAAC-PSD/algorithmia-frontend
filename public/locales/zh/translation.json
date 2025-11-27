@@ -42,6 +42,7 @@
     "problemReview": "审题",
     "problemBank": "题库",
     "contestManager": "赛务管理",
+    "settings": "设置",
     "superAdmin": "超级管理员"
   },
   "problemList": {
@@ -297,6 +298,44 @@
       "createSuccess": "比赛已保存",
       "importSuccess": "题目已导入到比赛",
       "removeSuccess": "题目已从比赛移除"
+    }
+  },
+  "userSettings": {
+    "title": "用户设置",
+    "subtitle": "管理账号安全并更新密码。",
+    "resetPassword": "重置密码",
+    "passwordDescription": "请选择一个强密码，并避免在其他站点重复使用。",
+    "status": {
+      "updating": "正在更新...",
+      "session": "更新后会保持登录状态。"
+    },
+    "fields": {
+      "currentPassword": "当前密码",
+      "newPassword": "新密码",
+      "confirmPassword": "确认新密码"
+    },
+    "placeholders": {
+      "current": "输入当前密码",
+      "new": "至少 8 个字符",
+      "confirm": "再次输入新密码"
+    },
+    "hints": {
+      "title": "密码提示",
+      "tip1": "至少 8 个字符。",
+      "tip2": "包含字母、数字和符号。",
+      "tip3": "避免在其他网站复用。",
+      "short": "至少 8 个字符",
+      "medium": "",
+      "strong": "强度良好"
+    },
+    "actions": {
+      "save": "更新密码"
+    },
+    "success": "密码更新成功。",
+    "errors": {
+      "samePassword": "新密码不能与当前密码相同",
+      "invalidFields": "请正确填写所有字段。",
+      "generic": "无法更新密码，请重试。"
     }
   },
   "common": {
