@@ -211,6 +211,18 @@
     "toast": {
       "updateSuccess": "User updated successfully",
       "deleteSuccess": "User deleted successfully"
+    },
+    "password": {
+      "title": "Reset password",
+      "subtitle": "Set a new password for {{username}}.",
+      "new": "New password",
+      "confirm": "Confirm password",
+      "save": "Update password",
+      "success": "Password reset for {{username}}",
+      "errors": {
+        "invalid": "Passwords must match and be at least 8 characters.",
+        "generic": "Failed to reset password"
+      }
     }
   },
   "competitions": {

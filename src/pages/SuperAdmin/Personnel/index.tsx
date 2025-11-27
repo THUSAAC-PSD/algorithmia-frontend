@@ -1,5 +1,6 @@
 import {
   ExclamationTriangleIcon,
+  LockClosedIcon,
   MagnifyingGlassIcon,
   PencilIcon,
   TrashIcon,
@@ -76,6 +77,14 @@ const PersonnelManagement = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [passwordTargetUser, setPasswordTargetUser] = useState<User | null>(
+    null,
+  );
+  const [passwordForm, setPasswordForm] = useState({
+    newPassword: '',
+    confirmPassword: '',
+  });
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -172,6 +181,69 @@ const PersonnelManagement = () => {
   const handleDeleteClick = (userId: string) => {
     setUserToDelete(userId);
     setShowDeleteModal(true);
+  };
+
+  const handlePasswordClick = (user: User) => {
+    setPasswordTargetUser(user);
+    setPasswordForm({ newPassword: '', confirmPassword: '' });
+    setShowPasswordModal(true);
+  };
+
+  const handleSavePassword = async () => {
+    if (!passwordTargetUser) return;
+    const { newPassword, confirmPassword } = passwordForm;
+    if (
+      !newPassword ||
+      newPassword.length < 8 ||
+      newPassword !== confirmPassword
+    ) {
+      toast.error(
+        t(
+          'personnel.password.errors.invalid',
+          'Passwords must match and be at least 8 characters.',
+        ),
+      );
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/users/${passwordTargetUser.user_id}/reset-password`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'abc',
+          },
+          credentials: 'include',
+          body: JSON.stringify({
+            new_password: newPassword,
+            confirm_password: confirmPassword,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(await parseErrorResponse(response));
+      }
+
+      toast.success(
+        t('personnel.password.success', {
+          username: passwordTargetUser.username,
+        }),
+      );
+      setShowPasswordModal(false);
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : t('personnel.password.errors.generic', 'Failed to reset password'),
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const getRoleBadgeClass = (role: string) => {
@@ -424,6 +496,14 @@ const PersonnelManagement = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex justify-end space-x-2">
                       <button
+                        onClick={() => handlePasswordClick(user)}
+                        className="p-1 rounded-full hover:bg-slate-600 text-slate-300"
+                        title={t('personnel.password.title', 'Reset password')}
+                        type="button"
+                      >
+                        <LockClosedIcon className="h-5 w-5" />
+                      </button>
+                      <button
                         onClick={() => handleEditUser(user)}
                         className="p-1 rounded-full hover:bg-slate-600 text-slate-300"
                         title={t('personnel.editUser')}
@@ -550,6 +630,88 @@ const PersonnelManagement = () => {
                   }
                 >
                   {isSaving ? t('common.loading') : t('personnel.saveChanges')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPasswordModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 rounded-lg max-w-md w-full overflow-hidden shadow-xl">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
+              <h2 className="text-lg font-medium text-white">
+                {t('personnel.password.title', 'Reset password')}
+              </h2>
+              <button
+                onClick={() => setShowPasswordModal(false)}
+                className="text-slate-400 hover:text-slate-200"
+                type="button"
+              >
+                <XMarkIcon className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-slate-300">
+                {t('personnel.password.subtitle', {
+                  username: passwordTargetUser?.username || '',
+                })}
+              </p>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-slate-300">
+                  {t('personnel.password.new', 'New password')}
+                </label>
+                <input
+                  type="password"
+                  className="w-full rounded-md border-0 bg-slate-700 py-2 px-3 text-slate-300 focus:ring-1 focus:ring-indigo-500"
+                  value={passwordForm.newPassword}
+                  onChange={(e) =>
+                    setPasswordForm({
+                      ...passwordForm,
+                      newPassword: e.target.value,
+                    })
+                  }
+                  autoComplete="new-password"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-slate-300">
+                  {t('personnel.password.confirm', 'Confirm password')}
+                </label>
+                <input
+                  type="password"
+                  className="w-full rounded-md border-0 bg-slate-700 py-2 px-3 text-slate-300 focus:ring-1 focus:ring-indigo-500"
+                  value={passwordForm.confirmPassword}
+                  onChange={(e) =>
+                    setPasswordForm({
+                      ...passwordForm,
+                      confirmPassword: e.target.value,
+                    })
+                  }
+                  autoComplete="new-password"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  onClick={() => setShowPasswordModal(false)}
+                  className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg"
+                  type="button"
+                  disabled={isSaving}
+                >
+                  {t('common.cancel')}
+                </button>
+                <button
+                  onClick={handleSavePassword}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                  type="button"
+                  disabled={isSaving}
+                >
+                  {isSaving
+                    ? t('common.loading')
+                    : t('personnel.password.save', 'Update password')}
                 </button>
               </div>
             </div>
